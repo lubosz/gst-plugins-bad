@@ -87,7 +87,8 @@ libgstopengl_la_CFLAGS = \
 	$(GST_BASE_CFLAGS) \
 	$(GST_PLUGINS_BASE_CFLAGS) \
 	$(GL_CFLAGS) \
-	$(LIBPNG_CFLAGS)
+	$(LIBPNG_CFLAGS) \
+	$(GRAPHENE_CFLAGS)
 
 libgstopengl_la_LIBADD = \
 	$(top_builddir)/gst-libs/gst/gl/libgstgl-$(GST_API_VERSION).la \
@@ -96,8 +97,9 @@ libgstopengl_la_LIBADD = \
 	-lgstpbutils-$(GST_API_VERSION) \
 	$(GL_LIBS) \
 	$(LIBPNG_LIBS) \
-        $(JPEG_LIBS) \
-	$(LIBM)
+  $(JPEG_LIBS) \
+	$(LIBM) \
+	$(GRAPHENE_LIBS)
 
 libgstopengl_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libgstopengl_la_LIBTOOLFLAGS = $(GST_PLUGIN_LIBTOOLFLAGS)
