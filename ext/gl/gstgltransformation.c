@@ -432,59 +432,19 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
   GstGLTransformation *cube_filter = GST_GL_TRANSFORMATION (filter);
   GstGLFuncs *gl = filter->context->gl_vtable;
 
-  //static GLfloat xrot = 0;
-  //static GLfloat yrot = 0;
-  //static GLfloat zrot = 0;
-
 /* *INDENT-OFF* */
   const GLfloat v_vertices[] = {
- /*|     Vertex     | TexCoord |*/ 
     /* front face */
      1.0,  1.0, -1.0, 1.0, 0.0,
      1.0, -1.0, -1.0, 1.0, 1.0,
     -1.0, -1.0, -1.0, 0.0, 1.0,
     -1.0,  1.0, -1.0, 0.0, 0.0,
-    /* back face */
-     1.0,  1.0,  1.0, 1.0, 0.0,
-    -1.0,  1.0,  1.0, 0.0, 0.0,
-    -1.0, -1.0,  1.0, 0.0, 1.0,
-     1.0, -1.0,  1.0, 1.0, 1.0,
-    /* right face */
-     1.0,  1.0,  1.0, 1.0, 0.0,
-     1.0, -1.0,  1.0, 0.0, 0.0,
-     1.0, -1.0, -1.0, 0.0, 1.0,
-     1.0,  1.0, -1.0, 1.0, 1.0,
-    /* left face */
-    -1.0,  1.0,  1.0, 1.0, 0.0,
-    -1.0,  1.0, -1.0, 1.0, 1.0,
-    -1.0, -1.0, -1.0, 0.0, 1.0,
-    -1.0, -1.0,  1.0, 0.0, 0.0,
-    /* top face */
-     1.0, -1.0,  1.0, 1.0, 0.0,
-    -1.0, -1.0,  1.0, 0.0, 0.0,
-    -1.0, -1.0, -1.0, 0.0, 1.0,
-     1.0, -1.0, -1.0, 1.0, 1.0,
-    /* bottom face */
-     1.0,  1.0,  1.0, 1.0, 0.0,
-     1.0,  1.0, -1.0, 1.0, 1.0,
-    -1.0,  1.0, -1.0, 0.0, 1.0,
-    -1.0,  1.0,  1.0, 0.0, 0.0
   };
 /* *INDENT-ON* */
 
   GLushort indices[] = {
     0, 1, 2,
-    0, 2, 3,
-    4, 5, 6,
-    4, 6, 7,
-    8, 9, 10,
-    8, 10, 11,
-    12, 13, 14,
-    12, 14, 15,
-    16, 17, 18,
-    16, 18, 19,
-    20, 21, 22,
-    20, 22, 23
+    0, 2, 3
   };
 
   GLint attr_position_loc = 0;
@@ -543,8 +503,4 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
   gl->DisableVertexAttribArray (attr_texture_loc);
 
   gl->Disable (GL_DEPTH_TEST);
-
-  //xrot += 0.3f;
-  //yrot += 0.2f;
-  //zrot += 0.4f;
 }
