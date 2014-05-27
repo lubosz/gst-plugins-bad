@@ -59,7 +59,15 @@ enum
   PROP_FOVY,
   PROP_ASPECT,
   PROP_ZNEAR,
-  PROP_ZFAR
+  PROP_ZFAR,
+  PROP_XTRANSLATION,
+  PROP_YTRANSLATION,
+  PROP_ZTRANSLATION,
+  PROP_XROTATION,
+  PROP_YROTATION,
+  PROP_ZROTATION,
+  PROP_XSCALE,
+  PROP_YSCALE
 };
 
 #define DEBUG_INIT \
@@ -85,24 +93,36 @@ static void _callback_gles2 (gint width, gint height, guint texture,
 static gboolean gst_gl_transformation_filter_texture (GstGLFilter * filter,
     guint in_tex, guint out_tex);
 
-#if GST_GL_HAVE_GLES2
 /* vertex source */
 static const gchar *cube_v_src =
     "attribute vec4 a_position;                                   \n"
     "attribute vec2 a_texCoord;                                   \n"
     "uniform mat4 u_matrix;                                       \n"
     "uniform float xrot_degree, yrot_degree, zrot_degree;         \n"
+    "uniform vec4 translation;         \n"
     "varying vec2 v_texCoord;                                     \n"
     "void main()                                                  \n"
     "{                                                            \n"
     "   float PI = 3.14159265;                                    \n"
+    "   float xrot = xrot_degree*2.0*PI/360.0;                    \n"
+    "   float yrot = yrot_degree*2.0*PI/360.0;                    \n"
     "   float zrot = zrot_degree*2.0*PI/360.0;                    \n"
+    "   mat4 matX = mat4 (                                        \n"
+    "            1.0,        0.0,        0.0, 0.0,                \n"
+    "            0.0,  cos(xrot),  sin(xrot), 0.0,                \n"
+    "            0.0, -sin(xrot),  cos(xrot), 0.0,                \n"
+    "            0.0,        0.0,        0.0, 1.0 );              \n"
+    "   mat4 matY = mat4 (                                        \n"
+    "      cos(yrot),        0.0, -sin(yrot), 0.0,                \n"
+    "            0.0,        1.0,        0.0, 0.0,                \n"
+    "      sin(yrot),        0.0,  cos(yrot), 0.0,                \n"
+    "            0.0,        0.0,       0.0,  1.0 );              \n"
     "   mat4 matZ = mat4 (                                        \n"
     "      cos(zrot),  sin(zrot),        0.0, 0.0,                \n"
     "     -sin(zrot),  cos(zrot),        0.0, 0.0,                \n"
     "            0.0,        0.0,        1.0, 0.0,                \n"
     "            0.0,        0.0,        0.0, 1.0 );              \n"
-    "   gl_Position = u_matrix * matZ * a_position; \n"
+    "   gl_Position = u_matrix * matZ * matY * matX * (a_position + translation); \n"
     "   v_texCoord = a_texCoord;                                  \n"
     "}                                                            \n";
 
@@ -115,7 +135,6 @@ static const gchar *cube_f_src =
     "{                                                   \n"
     "  gl_FragColor = texture2D( s_texture, v_texCoord );\n"
     "}                                                   \n";
-#endif
 
 static void
 gst_gl_transformation_class_init (GstGLTransformationClass * klass)
@@ -167,6 +186,49 @@ gst_gl_transformation_class_init (GstGLTransformationClass * klass)
           "Specifies the distance from the viewer to the far clipping plane",
           0.0, 1000.0, 100.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
+  // Rotation
+  g_object_class_install_property (gobject_class, PROP_XROTATION,
+      g_param_spec_float ("xrotation", "X Rotation",
+          "Rotates the video around the X-Axis in degrees.",
+          0.0, 360.0, 0.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class, PROP_YROTATION,
+      g_param_spec_float ("yrotation", "Y Rotation",
+          "Rotates the video around the Y-Axis in degrees.",
+          0.0, 360.0, 0.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class, PROP_ZROTATION,
+      g_param_spec_float ("zrotation", "Z Rotation",
+          "Rotates the video around the Z-Axis in degrees.",
+          0.0, 360.0, 0.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  // Translation
+  g_object_class_install_property (gobject_class, PROP_XTRANSLATION,
+      g_param_spec_float ("xtranslation", "X Translation",
+          "Translates the video at the X-Axis in percent.",
+          -100.0, 100.0, 0.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class, PROP_YTRANSLATION,
+      g_param_spec_float ("ytranslation", "Y Translation",
+          "Translates the video at the Y-Axis in percent.",
+          -100.0, 100.0, 0.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class, PROP_ZTRANSLATION,
+      g_param_spec_float ("ztranslation", "Z Translation",
+          "Translates the video at the Z-Axis in percent.",
+          -100.0, 100.0, 0.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  // Scale
+  g_object_class_install_property (gobject_class, PROP_XSCALE,
+      g_param_spec_float ("xscale", "X Scale",
+          "Scales the video at the X-Axis in times.",
+          0.0, 100.0, 1.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  g_object_class_install_property (gobject_class, PROP_YSCALE,
+      g_param_spec_float ("yscale", "Y Scale",
+          "Scales the video at the Y-Axis in times.",
+          0.0, 100.0, 1.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
   gst_element_class_set_metadata (element_class, "OpenGL transformation filter",
       "Filter/Effect/Video", "Transform video on the GPU",
       "Lubosz Sarnecki <lubosz@gmail.com>");
@@ -210,6 +272,30 @@ gst_gl_transformation_set_property (GObject * object, guint prop_id,
     case PROP_ZFAR:
       filter->zfar = g_value_get_double (value);
       break;
+    case PROP_XTRANSLATION:
+      filter->xtranslation = g_value_get_float (value);
+      break;
+    case PROP_YTRANSLATION:
+      filter->ytranslation = g_value_get_float (value);
+      break;
+    case PROP_ZTRANSLATION:
+      filter->ztranslation = g_value_get_float (value);
+      break;
+    case PROP_XROTATION:
+      filter->xrotation = g_value_get_float (value);
+      break;
+    case PROP_YROTATION:
+      filter->yrotation = g_value_get_float (value);
+      break;
+    case PROP_ZROTATION:
+      filter->zrotation = g_value_get_float (value);
+      break;
+    case PROP_XSCALE:
+      filter->xscale = g_value_get_float (value);
+      break;
+    case PROP_YSCALE:
+      filter->yscale = g_value_get_float (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -243,6 +329,30 @@ gst_gl_transformation_get_property (GObject * object, guint prop_id,
       break;
     case PROP_ZFAR:
       g_value_set_double (value, filter->zfar);
+      break;
+    case PROP_XTRANSLATION:
+      g_value_set_float (value, filter->xtranslation);
+      break;
+    case PROP_YTRANSLATION:
+      g_value_set_float (value, filter->ytranslation);
+      break;
+    case PROP_ZTRANSLATION:
+      g_value_set_float (value, filter->ztranslation);
+      break;
+    case PROP_XROTATION:
+      g_value_set_float (value, filter->xrotation);
+      break;
+    case PROP_YROTATION:
+      g_value_set_float (value, filter->yrotation);
+      break;
+    case PROP_ZROTATION:
+      g_value_set_float (value, filter->zrotation);
+      break;
+    case PROP_XSCALE:
+      g_value_set_float (value, filter->xscale);
+      break;
+    case PROP_YSCALE:
+      g_value_set_float (value, filter->yscale);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -322,9 +432,9 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
   GstGLTransformation *cube_filter = GST_GL_TRANSFORMATION (filter);
   GstGLFuncs *gl = filter->context->gl_vtable;
 
-  static GLfloat xrot = 0;
-  static GLfloat yrot = 0;
-  static GLfloat zrot = 0;
+  //static GLfloat xrot = 0;
+  //static GLfloat yrot = 0;
+  //static GLfloat zrot = 0;
 
 /* *INDENT-OFF* */
   const GLfloat v_vertices[] = {
@@ -413,11 +523,19 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
   gl->ActiveTexture (GL_TEXTURE0);
   gl->BindTexture (GL_TEXTURE_2D, texture);
   gst_gl_shader_set_uniform_1i (cube_filter->shader, "s_texture", 0);
-  gst_gl_shader_set_uniform_1f (cube_filter->shader, "xrot_degree", xrot);
-  gst_gl_shader_set_uniform_1f (cube_filter->shader, "yrot_degree", yrot);
-  gst_gl_shader_set_uniform_1f (cube_filter->shader, "zrot_degree", zrot);
+  gst_gl_shader_set_uniform_1f (cube_filter->shader, "xrot_degree",
+      cube_filter->xrotation);
+  gst_gl_shader_set_uniform_1f (cube_filter->shader, "yrot_degree",
+      cube_filter->yrotation);
+  gst_gl_shader_set_uniform_1f (cube_filter->shader, "zrot_degree",
+      cube_filter->zrotation);
   gst_gl_shader_set_uniform_matrix_4fv (cube_filter->shader, "u_matrix", 1,
       GL_FALSE, matrix);
+
+
+  gst_gl_shader_set_uniform_4f (cube_filter->shader, "translation",
+      cube_filter->xtranslation,
+      cube_filter->ytranslation, cube_filter->ztranslation, 0);
 
   gl->DrawElements (GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, indices);
 
@@ -426,7 +544,7 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
 
   gl->Disable (GL_DEPTH_TEST);
 
-  xrot += 0.3f;
-  yrot += 0.2f;
-  zrot += 0.4f;
+  //xrot += 0.3f;
+  //yrot += 0.2f;
+  //zrot += 0.4f;
 }

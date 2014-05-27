@@ -45,7 +45,18 @@ struct _GstGLTransformation
     gfloat red;
     gfloat green;
     gfloat blue;
+    
+    gfloat xrotation;
+    gfloat yrotation;
+    gfloat zrotation;
 
+    gfloat xscale;
+    gfloat yscale;
+
+    gfloat xtranslation;
+    gfloat ytranslation;
+    gfloat ztranslation;
+    
     /* perspective */
     gdouble fovy;
     gdouble aspect;
