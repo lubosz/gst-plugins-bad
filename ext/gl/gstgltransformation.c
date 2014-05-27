@@ -75,16 +75,13 @@ static void gst_gl_transformation_get_property (GObject * object, guint prop_id,
 
 static gboolean gst_gl_transformation_set_caps (GstGLFilter * filter,
     GstCaps * incaps, GstCaps * outcaps);
-#if GST_GL_HAVE_GLES2
+
 static void gst_gl_transformation_reset (GstGLFilter * filter);
 static gboolean gst_gl_transformation_init_shader (GstGLFilter * filter);
 static void _callback_gles2 (gint width, gint height, guint texture,
     gpointer stuff);
-#endif
-#if GST_GL_HAVE_OPENGL
-static void _callback_opengl (gint width, gint height, guint texture,
-    gpointer stuff);
-#endif
+
+
 static gboolean gst_gl_transformation_filter_texture (GstGLFilter * filter,
     guint in_tex, guint out_tex);
 
@@ -99,31 +96,19 @@ static const gchar *cube_v_src =
     "void main()                                                  \n"
     "{                                                            \n"
     "   float PI = 3.14159265;                                    \n"
-    "   float xrot = xrot_degree*2.0*PI/360.0;                    \n"
-    "   float yrot = yrot_degree*2.0*PI/360.0;                    \n"
     "   float zrot = zrot_degree*2.0*PI/360.0;                    \n"
-    "   mat4 matX = mat4 (                                        \n"
-    "            1.0,        0.0,        0.0, 0.0,                \n"
-    "            0.0,  cos(xrot),  sin(xrot), 0.0,                \n"
-    "            0.0, -sin(xrot),  cos(xrot), 0.0,                \n"
-    "            0.0,        0.0,        0.0, 1.0 );              \n"
-    "   mat4 matY = mat4 (                                        \n"
-    "      cos(yrot),        0.0, -sin(yrot), 0.0,                \n"
-    "            0.0,        1.0,        0.0, 0.0,                \n"
-    "      sin(yrot),        0.0,  cos(yrot), 0.0,                \n"
-    "            0.0,        0.0,       0.0,  1.0 );              \n"
     "   mat4 matZ = mat4 (                                        \n"
     "      cos(zrot),  sin(zrot),        0.0, 0.0,                \n"
     "     -sin(zrot),  cos(zrot),        0.0, 0.0,                \n"
     "            0.0,        0.0,        1.0, 0.0,                \n"
     "            0.0,        0.0,        0.0, 1.0 );              \n"
-    "   gl_Position = u_matrix * matZ * matY * matX * a_position; \n"
+    "   gl_Position = u_matrix * matZ * a_position; \n"
     "   v_texCoord = a_texCoord;                                  \n"
     "}                                                            \n";
 
 /* fragment source */
 static const gchar *cube_f_src =
-    "precision mediump float;                            \n"
+//    "precision mediump float;                            \n"
     "varying vec2 v_texCoord;                            \n"
     "uniform sampler2D s_texture;                        \n"
     "void main()                                         \n"
@@ -144,10 +129,9 @@ gst_gl_transformation_class_init (GstGLTransformationClass * klass)
   gobject_class->set_property = gst_gl_transformation_set_property;
   gobject_class->get_property = gst_gl_transformation_get_property;
 
-#if GST_GL_HAVE_GLES2
+
   GST_GL_FILTER_CLASS (klass)->onInitFBO = gst_gl_transformation_init_shader;
   GST_GL_FILTER_CLASS (klass)->onReset = gst_gl_transformation_reset;
-#endif
   GST_GL_FILTER_CLASS (klass)->set_caps = gst_gl_transformation_set_caps;
   GST_GL_FILTER_CLASS (klass)->filter_texture =
       gst_gl_transformation_filter_texture;
@@ -183,9 +167,9 @@ gst_gl_transformation_class_init (GstGLTransformationClass * klass)
           "Specifies the distance from the viewer to the far clipping plane",
           0.0, 1000.0, 100.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-  gst_element_class_set_metadata (element_class, "OpenGL cube filter",
-      "Filter/Effect/Video", "Map input texture on the 6 cube faces",
-      "Julien Isorce <julien.isorce@gmail.com>");
+  gst_element_class_set_metadata (element_class, "OpenGL transformation filter",
+      "Filter/Effect/Video", "Transform video on the GPU",
+      "Lubosz Sarnecki <lubosz@gmail.com>");
 }
 
 static void
@@ -279,7 +263,6 @@ gst_gl_transformation_set_caps (GstGLFilter * filter, GstCaps * incaps,
   return TRUE;
 }
 
-#if GST_GL_HAVE_GLES2
 static void
 gst_gl_transformation_reset (GstGLFilter * filter)
 {
@@ -296,14 +279,13 @@ gst_gl_transformation_init_shader (GstGLFilter * filter)
 {
   GstGLTransformation *cube_filter = GST_GL_TRANSFORMATION (filter);
 
-  if (gst_gl_context_get_gl_api (filter->context) & GST_GL_API_GLES2) {
+  if (gst_gl_context_get_gl_api (filter->context)) {
     /* blocking call, wait the opengl thread has compiled the shader */
     return gst_gl_context_gen_shader (filter->context, cube_v_src, cube_f_src,
         &cube_filter->shader);
   }
   return TRUE;
 }
-#endif
 
 static gboolean
 gst_gl_transformation_filter_texture (GstGLFilter * filter, guint in_tex,
@@ -315,14 +297,8 @@ gst_gl_transformation_filter_texture (GstGLFilter * filter, guint in_tex,
 
   api = gst_gl_context_get_gl_api (GST_GL_FILTER (cube_filter)->context);
 
-#if GST_GL_HAVE_OPENGL
-  if (api & GST_GL_API_OPENGL)
-    cb = _callback_opengl;
-#endif
-#if GST_GL_HAVE_GLES2
-  if (api & GST_GL_API_GLES2)
+  if (api)
     cb = _callback_gles2;
-#endif
 
   /* blocking call, use a FBO */
   gst_gl_context_use_fbo (filter->context,
@@ -339,110 +315,6 @@ gst_gl_transformation_filter_texture (GstGLFilter * filter, guint in_tex,
   return TRUE;
 }
 
-/* opengl scene, params: input texture (not the output filter->texture) */
-#if GST_GL_HAVE_OPENGL
-static void
-_callback_opengl (gint width, gint height, guint texture, gpointer stuff)
-{
-  GstGLTransformation *cube_filter = GST_GL_TRANSFORMATION (stuff);
-  GstGLFilter *filter = GST_GL_FILTER (stuff);
-  GstGLFuncs *gl = filter->context->gl_vtable;
-
-  static GLfloat xrot = 0;
-  static GLfloat yrot = 0;
-  static GLfloat zrot = 0;
-
-/* *INDENT-OFF* */
-  const GLfloat v_vertices[] = {
- /*|     Vertex     | TexCoord |*/ 
-    /* front face */
-     1.0,  1.0, -1.0, 0.0, 0.0,
-     1.0, -1.0, -1.0, 1.0, 0.0,
-    -1.0, -1.0, -1.0, 1.0, 1.0,
-    -1.0,  1.0, -1.0, 0.0, 1.0,
-    /* back face */
-    -1.0,  1.0,  1.0, 0.0, 0.0,
-    -1.0, -1.0,  1.0, 1.0, 0.0,
-     1.0, -1.0,  1.0, 1.0, 1.0,
-     1.0,  1.0,  1.0, 0.0, 1.0,
-    /* right face */
-    -1.0,  1.0, -1.0, 0.0, 0.0,
-    -1.0, -1.0, -1.0, 1.0, 0.0,
-    -1.0, -1.0,  1.0, 1.0, 1.0,
-    -1.0,  1.0,  1.0, 0.0, 1.0,
-    /* left face */
-     1.0,  1.0,  1.0, 0.0, 0.0,
-     1.0, -1.0,  1.0, 1.0, 0.0,
-     1.0, -1.0, -1.0, 1.0, 1.0,
-     1.0,  1.0, -1.0, 0.0, 1.0,
-    /* top face */
-     1.0,  1.0,  1.0, 0.0, 0.0,
-     1.0,  1.0, -1.0, 1.0, 0.0,
-    -1.0,  1.0, -1.0, 1.0, 1.0,
-    -1.0,  1.0,  1.0, 0.0, 1.0,
-    /* bottom face */
-     1.0, -1.0,  1.0, 0.0, 0.0,
-     1.0, -1.0, -1.0, 1.0, 0.0,
-    -1.0, -1.0, -1.0, 1.0, 1.0,
-    -1.0, -1.0,  1.0, 0.0, 1.0,
-  };
-/* *INDENT-ON* */
-
-  GLushort indices[] = {
-    0, 1, 2,
-    0, 2, 3,
-    4, 5, 6,
-    4, 6, 7,
-    8, 9, 10,
-    8, 10, 11,
-    12, 13, 14,
-    12, 14, 15,
-    16, 17, 18,
-    16, 18, 19,
-    20, 21, 22,
-    20, 22, 23
-  };
-
-  gl->Enable (GL_DEPTH_TEST);
-
-  gl->Enable (GL_TEXTURE_2D);
-  gl->BindTexture (GL_TEXTURE_2D, texture);
-
-  gl->ClearColor (cube_filter->red, cube_filter->green, cube_filter->blue, 0.0);
-  gl->Clear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  gl->MatrixMode (GL_PROJECTION);
-  gluLookAt (0.0, 0.0, -6.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-  gl->MatrixMode (GL_MODELVIEW);
-  gl->LoadIdentity ();
-
-//  gl->Translatef (0.0f, 0.0f, -5.0f);
-
-  gl->Rotatef (xrot, 1.0f, 0.0f, 0.0f);
-  gl->Rotatef (yrot, 0.0f, 1.0f, 0.0f);
-  gl->Rotatef (zrot, 0.0f, 0.0f, 1.0f);
-
-  gl->ClientActiveTexture (GL_TEXTURE0);
-  gl->EnableClientState (GL_TEXTURE_COORD_ARRAY);
-  gl->EnableClientState (GL_VERTEX_ARRAY);
-
-  gl->VertexPointer (3, GL_FLOAT, 5 * sizeof (float), v_vertices);
-  gl->TexCoordPointer (2, GL_FLOAT, 5 * sizeof (float), &v_vertices[3]);
-
-  gl->DrawElements (GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, indices);
-
-  gl->DisableClientState (GL_TEXTURE_COORD_ARRAY);
-  gl->DisableClientState (GL_VERTEX_ARRAY);
-
-  gl->Disable (GL_DEPTH_TEST);
-
-  xrot += 0.3f;
-  yrot += 0.2f;
-  zrot += 0.4f;
-}
-#endif
-
-#if GST_GL_HAVE_GLES2
 static void
 _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
 {
@@ -558,4 +430,3 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
   yrot += 0.2f;
   zrot += 0.4f;
 }
-#endif
