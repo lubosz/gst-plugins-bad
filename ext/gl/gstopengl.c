@@ -99,6 +99,11 @@ plugin_init (GstPlugin * plugin)
     return FALSE;
   }
 
+  if (!gst_element_register (plugin, "gltransformation",
+          GST_RANK_NONE, GST_TYPE_GL_TRANSFORMATION)) {
+    return FALSE;
+  }
+
   if (!gst_element_register (plugin, "gleffects",
           GST_RANK_NONE, gst_gl_effects_get_type ())) {
     return FALSE;
