@@ -18,19 +18,19 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef _GST_GL_FILTERCUBE_H_
-#define _GST_GL_FILTERCUBE_H_
+#ifndef _GST_GL_TRANSFORMATION_H_
+#define _GST_GL_TRANSFORMATION_H_
 
 #include <gst/gl/gstglfilter.h>
 
 G_BEGIN_DECLS
 
-#define GST_TYPE_gl_transformation            (gst_gl_transformation_get_type())
-#define GST_gl_transformation(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_gl_transformation,GstGLTransformation))
-#define GST_IS_gl_transformation(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_gl_transformation))
-#define GST_gl_transformation_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST((klass) ,GST_TYPE_gl_transformation,GstGLTransformationClass))
-#define GST_IS_gl_transformation_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass) ,GST_TYPE_gl_transformation))
-#define GST_gl_transformation_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS((obj) ,GST_TYPE_gl_transformation,GstGLTransformationClass))
+#define GST_TYPE_GL_TRANSFORMATION            (gst_gl_transformation_get_type())
+#define GST_GL_TRANSFORMATION(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_GL_TRANSFORMATION,GstGLTransformation))
+#define GST_IS_GL_TRANSFORMATION(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_GL_TRANSFORMATION))
+#define GST_GL_TRANSFORMATION_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST((klass) ,GST_TYPE_GL_TRANSFORMATION,GstGLTransformationClass))
+#define GST_IS_GL_TRANSFORMATION_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass) ,GST_TYPE_GL_TRANSFORMATION))
+#define GST_GL_TRANSFORMATION_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS((obj) ,GST_TYPE_GL_TRANSFORMATION,GstGLTransformationClass))
 
 typedef struct _GstGLTransformation GstGLTransformation;
 typedef struct _GstGLTransformationClass GstGLTransformationClass;

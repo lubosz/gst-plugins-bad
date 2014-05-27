@@ -202,7 +202,7 @@ static void
 gst_gl_transformation_set_property (GObject * object, guint prop_id,
     const GValue * value, GParamSpec * pspec)
 {
-  GstGLTransformation *filter = GST_gl_transformation (object);
+  GstGLTransformation *filter = GST_GL_TRANSFORMATION (object);
 
   switch (prop_id) {
     case PROP_RED:
@@ -236,7 +236,7 @@ static void
 gst_gl_transformation_get_property (GObject * object, guint prop_id,
     GValue * value, GParamSpec * pspec)
 {
-  GstGLTransformation *filter = GST_gl_transformation (object);
+  GstGLTransformation *filter = GST_GL_TRANSFORMATION (object);
 
   switch (prop_id) {
     case PROP_RED:
@@ -270,7 +270,7 @@ static gboolean
 gst_gl_transformation_set_caps (GstGLFilter * filter, GstCaps * incaps,
     GstCaps * outcaps)
 {
-  GstGLTransformation *cube_filter = GST_gl_transformation (filter);
+  GstGLTransformation *cube_filter = GST_GL_TRANSFORMATION (filter);
 
   if (cube_filter->aspect == 0)
     cube_filter->aspect = (gdouble) GST_VIDEO_INFO_WIDTH (&filter->out_info) /
@@ -283,7 +283,7 @@ gst_gl_transformation_set_caps (GstGLFilter * filter, GstCaps * incaps,
 static void
 gst_gl_transformation_reset (GstGLFilter * filter)
 {
-  GstGLTransformation *cube_filter = GST_gl_transformation (filter);
+  GstGLTransformation *cube_filter = GST_GL_TRANSFORMATION (filter);
 
   /* blocking call, wait the opengl thread has destroyed the shader */
   if (cube_filter->shader)
@@ -294,7 +294,7 @@ gst_gl_transformation_reset (GstGLFilter * filter)
 static gboolean
 gst_gl_transformation_init_shader (GstGLFilter * filter)
 {
-  GstGLTransformation *cube_filter = GST_gl_transformation (filter);
+  GstGLTransformation *cube_filter = GST_GL_TRANSFORMATION (filter);
 
   if (gst_gl_context_get_gl_api (filter->context) & GST_GL_API_GLES2) {
     /* blocking call, wait the opengl thread has compiled the shader */
@@ -309,7 +309,7 @@ static gboolean
 gst_gl_transformation_filter_texture (GstGLFilter * filter, guint in_tex,
     guint out_tex)
 {
-  GstGLTransformation *cube_filter = GST_gl_transformation (filter);
+  GstGLTransformation *cube_filter = GST_GL_TRANSFORMATION (filter);
   GLCB cb = NULL;
   GstGLAPI api;
 
@@ -344,7 +344,7 @@ gst_gl_transformation_filter_texture (GstGLFilter * filter, guint in_tex,
 static void
 _callback_opengl (gint width, gint height, guint texture, gpointer stuff)
 {
-  GstGLTransformation *cube_filter = GST_gl_transformation (stuff);
+  GstGLTransformation *cube_filter = GST_GL_TRANSFORMATION (stuff);
   GstGLFilter *filter = GST_GL_FILTER (stuff);
   GstGLFuncs *gl = filter->context->gl_vtable;
 
@@ -447,7 +447,7 @@ static void
 _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
 {
   GstGLFilter *filter = GST_GL_FILTER (stuff);
-  GstGLTransformation *cube_filter = GST_gl_transformation (filter);
+  GstGLTransformation *cube_filter = GST_GL_TRANSFORMATION (filter);
   GstGLFuncs *gl = filter->context->gl_vtable;
 
   static GLfloat xrot = 0;
