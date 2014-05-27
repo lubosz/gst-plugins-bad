@@ -47,6 +47,8 @@
 #include <gst/gl/gstglapi.h>
 #include "gstgltransformation.h"
 
+#include <graphene-1.0/graphene.h>
+
 #define GST_CAT_DEFAULT gst_gl_transformation_debug
 GST_DEBUG_CATEGORY_STATIC (GST_CAT_DEFAULT);
 
@@ -426,6 +428,38 @@ gst_gl_transformation_filter_texture (GstGLFilter * filter, guint in_tex,
 }
 
 static void
+print_matrix (graphene_matrix_t * m)
+{
+
+  float a0 = graphene_matrix_get_value (m, 0, 0);
+  float a1 = graphene_matrix_get_value (m, 0, 1);
+  float a2 = graphene_matrix_get_value (m, 0, 2);
+  float a3 = graphene_matrix_get_value (m, 0, 3);
+
+  float b0 = graphene_matrix_get_value (m, 1, 0);
+  float b1 = graphene_matrix_get_value (m, 1, 1);
+  float b2 = graphene_matrix_get_value (m, 1, 2);
+  float b3 = graphene_matrix_get_value (m, 1, 3);
+
+  float c0 = graphene_matrix_get_value (m, 2, 0);
+  float c1 = graphene_matrix_get_value (m, 2, 1);
+  float c2 = graphene_matrix_get_value (m, 2, 2);
+  float c3 = graphene_matrix_get_value (m, 2, 3);
+
+  float d0 = graphene_matrix_get_value (m, 3, 0);
+  float d1 = graphene_matrix_get_value (m, 3, 1);
+  float d2 = graphene_matrix_get_value (m, 3, 2);
+  float d3 = graphene_matrix_get_value (m, 3, 3);
+
+  g_print ("===================\n");
+  g_print ("%.2f %.2f %.2f %.2f\n", a0, a1, a2, a3);
+  g_print ("%.2f %.2f %.2f %.2f\n", b0, b1, b2, b3);
+  g_print ("%.2f %.2f %.2f %.2f\n", c0, c1, c2, c3);
+  g_print ("%.2f %.2f %.2f %.2f\n", d0, d1, d2, d3);
+  g_print ("===================\n");
+}
+
+static void
 _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
 {
   GstGLFilter *filter = GST_GL_FILTER (stuff);
@@ -450,12 +484,31 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
   GLint attr_position_loc = 0;
   GLint attr_texture_loc = 0;
 
-  const GLfloat matrix[] = {
+  const GLfloat cube_matrix[] = {
     0.5f, 0.0f, 0.0f, 0.0f,
     0.0f, 0.5f, 0.0f, 0.0f,
     0.0f, 0.0f, 0.5f, 0.0f,
     0.0f, 0.0f, 0.0f, 1.0f
   };
+
+  GLfloat temp_matrix[16];
+
+  graphene_matrix_t *m = graphene_matrix_alloc ();
+  graphene_matrix_t *some_matrix = graphene_matrix_alloc ();
+
+  graphene_matrix_init_identity (m);
+
+  g_print ("m:\n");
+  print_matrix (m);
+
+  //graphene_matrix_free(m);
+
+  //graphene_matrix_scale (&m, 2.0f, 2.0f, 2.0f);
+
+  graphene_matrix_init_from_float (some_matrix, cube_matrix);
+  g_print ("some_matrix:\n");
+  print_matrix (some_matrix);
+  graphene_matrix_free (some_matrix);
 
   gl->Enable (GL_DEPTH_TEST);
 
@@ -489,8 +542,10 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
       cube_filter->yrotation);
   gst_gl_shader_set_uniform_1f (cube_filter->shader, "zrot_degree",
       cube_filter->zrotation);
+
+  graphene_matrix_to_float (m, temp_matrix);
   gst_gl_shader_set_uniform_matrix_4fv (cube_filter->shader, "u_matrix", 1,
-      GL_FALSE, matrix);
+      GL_FALSE, temp_matrix);
 
 
   gst_gl_shader_set_uniform_4f (cube_filter->shader, "translation",
