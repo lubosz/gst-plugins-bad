@@ -48,6 +48,7 @@
 #include "gstglfiltercube.h"
 #include "gstgleffects.h"
 #include "gstglcolorscale.h"
+#include "gstgltransformation.h"
 
 #if GST_GL_HAVE_OPENGL
 #include "gstgltestsrc.h"

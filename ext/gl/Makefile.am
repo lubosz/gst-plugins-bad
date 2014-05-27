@@ -65,6 +65,8 @@ libgstopengl_la_SOURCES = \
 	gstglimagesink.h \
 	gstglfiltercube.c \
 	gstglfiltercube.h \
+	gstgltransformation.c \
+	gstgltransformation.h \
 	gstgleffects.c \
 	gstgleffects.h \
 	effects/gstgleffectssources.c \
