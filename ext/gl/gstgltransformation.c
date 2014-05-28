@@ -98,26 +98,32 @@ static gboolean gst_gl_transformation_filter_texture (GstGLFilter * filter,
 /* vertex source */
 static const gchar *cube_v_src =
     "attribute vec4 position;                                   \n"
+    //"attribute vec3 color;                                   \n"
     "attribute vec2 texture_coordinate;                                   \n"
 //    "uniform mat4 u_matrix;                                       \n"
     "uniform mat4 rotation_matrix;                                       \n"
     "uniform mat4 scale_matrix;                                       \n"
     "uniform mat4 translation_matrix;                                       \n"
     "varying vec2 out_texture_coordinate;                                     \n"
+    //"varying vec3 out_color;                                     \n"
     "void main()                                                  \n"
     "{                                                            \n"
     "   gl_Position = translation_matrix * rotation_matrix * scale_matrix * position; \n"
     "   out_texture_coordinate = texture_coordinate;                                  \n"
+    //"   out_color = color;\n"
     "}                                                            \n";
 
 /* fragment source */
 static const gchar *cube_f_src =
 //    "precision mediump float;                            \n"
     "varying vec2 out_texture_coordinate;                            \n"
+    //"varying vec3 out_color;                            \n"
     "uniform sampler2D texture;                        \n"
     "void main()                                         \n"
     "{                                                   \n"
     "  gl_FragColor = texture2D( texture, out_texture_coordinate );\n"
+    //"    gl_FragColor = vec4(out_texture_coordinate.x, out_texture_coordinate.y, 0, 1); \n"
+    //"gl_FragColor = vec4(out_color, 1);\n"
     "}                                                   \n";
 
 static void
@@ -453,36 +459,37 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
 
 /* *INDENT-OFF* */
   const GLfloat positions[] = {
-    /* front face */
-     1.0, 1.0, -1.0, 1.0, 
-     0.0, 1.0,-1.0, -1.0, 
-     1.0, 1.0, -1.0, -1.0, 
-     -1.0, 0.0, 1.0,-1.0, 
-     1.0, -1.0, 0.0, 0.0,
+     -1.0,  1.0,  1.0, 1.0,
+      1.0,  1.0,  1.0, 1.0,
+      1.0, -1.0, -1.0, 1.0,
+     -1.0, -1.0,  1.0, 1.0,
   };
 
+/*
+  const GLfloat colors[] = {
+     1.0, 0.0, 0.0, 
+     0.0, 1.0, 0.0,
+     0.0, 0.0, 1.0, 
+     1.0, 1.0, 1.0
+  };
+*/
+
   const GLfloat texture_coordinates[] = {
-     1.0,  1.0, 
-    -1.0,  1.0, 
-     0.0,  1.0,
-    -1.0, -1.0, 
+     0.0,  1.0, 
      1.0,  1.0,
-    -1.0, -1.0, 
-    -1.0,  0.0, 
-     1.0,  1.0,  
-     1.0, -1.0,
-     0.0,  0.0
+     1.0,  0.0,
+     0.0,  0.0, 
   };
 
 /* *INDENT-ON* */
 
   GLushort indices[] = {
-    0, 1, 2,
-    0, 2, 3
+    0, 1, 2, 3, 0
   };
 
   GLint attr_position_loc = 0;
   GLint attr_texture_loc = 0;
+  //GLint attr_color_loc = 0;
 
   GLfloat temp_matrix[16];
 
@@ -529,18 +536,26 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
 
   attr_position_loc =
       gst_gl_shader_get_attribute_location (cube_filter->shader, "position");
+
+  //attr_color_loc =
+  //    gst_gl_shader_get_attribute_location (cube_filter->shader, "color");
+
   attr_texture_loc =
       gst_gl_shader_get_attribute_location (cube_filter->shader,
       "texture_coordinate");
 
   /* Load the vertex position */
-  gl->VertexAttribPointer (attr_position_loc, 3, GL_FLOAT,
-      GL_FALSE, 5 * sizeof (GLfloat), positions);
+  gl->VertexAttribPointer (attr_position_loc, 4, GL_FLOAT,
+      GL_FALSE, 4 * sizeof (GLfloat), positions);
+
+  //gl->VertexAttribPointer (attr_color_loc, 4, GL_FLOAT,
+  //    GL_FALSE, 3 * sizeof (GLfloat), colors);
 
   /* Load the texture coordinate */
-  gl->VertexAttribPointer (attr_texture_loc, 2, GL_FLOAT,
-      GL_FALSE, 5 * sizeof (GLfloat), &texture_coordinates[3]);
+  gl->VertexAttribPointer (attr_texture_loc, 4, GL_FLOAT,
+      GL_FALSE, 2 * sizeof (GLfloat), texture_coordinates);
 
+  //gl->EnableVertexAttribArray (attr_color_loc);
   gl->EnableVertexAttribArray (attr_position_loc);
   gl->EnableVertexAttribArray (attr_texture_loc);
 
@@ -569,10 +584,11 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
      cube_filter->ytranslation, cube_filter->ztranslation, 0);
    */
 
-  gl->DrawElements (GL_TRIANGLE_STRIP, 3, GL_UNSIGNED_SHORT, indices);
+  gl->DrawElements (GL_TRIANGLE_STRIP, 5, GL_UNSIGNED_SHORT, indices);
 
   gl->DisableVertexAttribArray (attr_position_loc);
   gl->DisableVertexAttribArray (attr_texture_loc);
+  //gl->DisableVertexAttribArray (attr_color_loc);
 
   gl->Disable (GL_DEPTH_TEST);
 }
