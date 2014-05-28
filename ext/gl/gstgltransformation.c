@@ -569,7 +569,7 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
      cube_filter->ytranslation, cube_filter->ztranslation, 0);
    */
 
-  gl->DrawElements (GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices);
+  gl->DrawElements (GL_TRIANGLE_STRIP, 3, GL_UNSIGNED_SHORT, indices);
 
   gl->DisableVertexAttribArray (attr_position_loc);
   gl->DisableVertexAttribArray (attr_texture_loc);
