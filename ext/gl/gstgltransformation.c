@@ -97,45 +97,27 @@ static gboolean gst_gl_transformation_filter_texture (GstGLFilter * filter,
 
 /* vertex source */
 static const gchar *cube_v_src =
-    "attribute vec4 a_position;                                   \n"
-    "attribute vec2 a_texCoord;                                   \n"
-    "uniform mat4 u_matrix;                                       \n"
-    "uniform float xrot_degree, yrot_degree, zrot_degree;         \n"
-    "uniform vec4 translation;         \n"
-    "varying vec2 v_texCoord;                                     \n"
+    "attribute vec4 position;                                   \n"
+    "attribute vec2 texture_coordinate;                                   \n"
+//    "uniform mat4 u_matrix;                                       \n"
+    "uniform mat4 rotation_matrix;                                       \n"
+    "uniform mat4 scale_matrix;                                       \n"
+    "uniform mat4 translation_matrix;                                       \n"
+    "varying vec2 out_texture_coordinate;                                     \n"
     "void main()                                                  \n"
     "{                                                            \n"
-    "   float PI = 3.14159265;                                    \n"
-    "   float xrot = xrot_degree*2.0*PI/360.0;                    \n"
-    "   float yrot = yrot_degree*2.0*PI/360.0;                    \n"
-    "   float zrot = zrot_degree*2.0*PI/360.0;                    \n"
-    "   mat4 matX = mat4 (                                        \n"
-    "            1.0,        0.0,        0.0, 0.0,                \n"
-    "            0.0,  cos(xrot),  sin(xrot), 0.0,                \n"
-    "            0.0, -sin(xrot),  cos(xrot), 0.0,                \n"
-    "            0.0,        0.0,        0.0, 1.0 );              \n"
-    "   mat4 matY = mat4 (                                        \n"
-    "      cos(yrot),        0.0, -sin(yrot), 0.0,                \n"
-    "            0.0,        1.0,        0.0, 0.0,                \n"
-    "      sin(yrot),        0.0,  cos(yrot), 0.0,                \n"
-    "            0.0,        0.0,       0.0,  1.0 );              \n"
-    "   mat4 matZ = mat4 (                                        \n"
-    "      cos(zrot),  sin(zrot),        0.0, 0.0,                \n"
-    "     -sin(zrot),  cos(zrot),        0.0, 0.0,                \n"
-    "            0.0,        0.0,        1.0, 0.0,                \n"
-    "            0.0,        0.0,        0.0, 1.0 );              \n"
-    "   gl_Position = u_matrix * matZ * matY * matX * (a_position + translation); \n"
-    "   v_texCoord = a_texCoord;                                  \n"
+    "   gl_Position = translation_matrix * rotation_matrix * scale_matrix * position; \n"
+    "   out_texture_coordinate = texture_coordinate;                                  \n"
     "}                                                            \n";
 
 /* fragment source */
 static const gchar *cube_f_src =
 //    "precision mediump float;                            \n"
-    "varying vec2 v_texCoord;                            \n"
-    "uniform sampler2D s_texture;                        \n"
+    "varying vec2 out_texture_coordinate;                            \n"
+    "uniform sampler2D texture;                        \n"
     "void main()                                         \n"
     "{                                                   \n"
-    "  gl_FragColor = texture2D( s_texture, v_texCoord );\n"
+    "  gl_FragColor = texture2D( texture, out_texture_coordinate );\n"
     "}                                                   \n";
 
 static void
@@ -244,6 +226,9 @@ gst_gl_transformation_init (GstGLTransformation * filter)
   filter->aspect = 0;
   filter->znear = 0.1;
   filter->zfar = 100;
+
+  filter->xscale = 1.0;
+  filter->yscale = 1.0;
 }
 
 static void
@@ -428,7 +413,7 @@ gst_gl_transformation_filter_texture (GstGLFilter * filter, guint in_tex,
 }
 
 static void
-print_matrix (graphene_matrix_t * m)
+print_matrix (const gchar * name, graphene_matrix_t * m)
 {
 
   float a0 = graphene_matrix_get_value (m, 0, 0);
@@ -451,7 +436,7 @@ print_matrix (graphene_matrix_t * m)
   float d2 = graphene_matrix_get_value (m, 3, 2);
   float d3 = graphene_matrix_get_value (m, 3, 3);
 
-  g_print ("===================\n");
+  g_print ("=========%s=========\n", name);
   g_print ("%.2f %.2f %.2f %.2f\n", a0, a1, a2, a3);
   g_print ("%.2f %.2f %.2f %.2f\n", b0, b1, b2, b3);
   g_print ("%.2f %.2f %.2f %.2f\n", c0, c1, c2, c3);
@@ -467,13 +452,28 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
   GstGLFuncs *gl = filter->context->gl_vtable;
 
 /* *INDENT-OFF* */
-  const GLfloat v_vertices[] = {
+  const GLfloat positions[] = {
     /* front face */
-     1.0,  1.0, -1.0, 1.0, 0.0,
-     1.0, -1.0, -1.0, 1.0, 1.0,
-    -1.0, -1.0, -1.0, 0.0, 1.0,
-    -1.0,  1.0, -1.0, 0.0, 0.0,
+     1.0, 1.0, -1.0, 1.0, 
+     0.0, 1.0,-1.0, -1.0, 
+     1.0, 1.0, -1.0, -1.0, 
+     -1.0, 0.0, 1.0,-1.0, 
+     1.0, -1.0, 0.0, 0.0,
   };
+
+  const GLfloat texture_coordinates[] = {
+     1.0,  1.0, 
+    -1.0,  1.0, 
+     0.0,  1.0,
+    -1.0, -1.0, 
+     1.0,  1.0,
+    -1.0, -1.0, 
+    -1.0,  0.0, 
+     1.0,  1.0,  
+     1.0, -1.0,
+     0.0,  0.0
+  };
+
 /* *INDENT-ON* */
 
   GLushort indices[] = {
@@ -484,31 +484,41 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
   GLint attr_position_loc = 0;
   GLint attr_texture_loc = 0;
 
-  const GLfloat cube_matrix[] = {
-    0.5f, 0.0f, 0.0f, 0.0f,
-    0.0f, 0.5f, 0.0f, 0.0f,
-    0.0f, 0.0f, 0.5f, 0.0f,
-    0.0f, 0.0f, 0.0f, 1.0f
-  };
-
   GLfloat temp_matrix[16];
 
-  graphene_matrix_t *m = graphene_matrix_alloc ();
-  graphene_matrix_t *some_matrix = graphene_matrix_alloc ();
+  graphene_point3d_t translation_vector =
+      GRAPHENE_POINT3D_INIT (cube_filter->xtranslation,
+      cube_filter->ytranslation,
+      cube_filter->ztranslation);
 
-  graphene_matrix_init_identity (m);
+  graphene_matrix_t translation_matrix;
+  graphene_matrix_t scale_matrix;
+  graphene_matrix_t rotation_matrix;
 
-  g_print ("m:\n");
-  print_matrix (m);
+  graphene_matrix_init_translate (&translation_matrix, &translation_vector);
+  graphene_matrix_init_scale (&scale_matrix,
+      cube_filter->xscale, cube_filter->yscale, 1.0f);
+  graphene_matrix_init_rotate (&rotation_matrix,
+      (G_PI / 180.f) * cube_filter->xrotation, graphene_vec3_z_axis ());
 
-  //graphene_matrix_free(m);
 
-  //graphene_matrix_scale (&m, 2.0f, 2.0f, 2.0f);
+  /*
+     graphene_matrix_t model_matrix;
+     graphene_matrix_init_identity (&model_matrix);
+     graphene_matrix_translate(&model_matrix, &translation_vector);
+     graphene_matrix_scale (&model_matrix, 
+     cube_filter->xscale, 
+     cube_filter->yscale, 
+     1.0f);
+     graphene_matrix_rotate(&model_matrix, (G_PI / 180.f) * cube_filter->xrotation, graphene_vec3_z_axis());
+   */
 
-  graphene_matrix_init_from_float (some_matrix, cube_matrix);
-  g_print ("some_matrix:\n");
-  print_matrix (some_matrix);
-  graphene_matrix_free (some_matrix);
+  //graphene_matrix_multiply(&scale_matrix, &rotation_matrix, &model_matrix);
+
+  //print_matrix ("translation", &translation_matrix);
+  //print_matrix ("scale", &scale_matrix);
+  //print_matrix ("rotation", &rotation_matrix);
+  print_matrix ("model", &translation_matrix);
 
   gl->Enable (GL_DEPTH_TEST);
 
@@ -518,41 +528,48 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
   gst_gl_shader_use (cube_filter->shader);
 
   attr_position_loc =
-      gst_gl_shader_get_attribute_location (cube_filter->shader, "a_position");
+      gst_gl_shader_get_attribute_location (cube_filter->shader, "position");
   attr_texture_loc =
-      gst_gl_shader_get_attribute_location (cube_filter->shader, "a_texCoord");
+      gst_gl_shader_get_attribute_location (cube_filter->shader,
+      "texture_coordinate");
 
   /* Load the vertex position */
   gl->VertexAttribPointer (attr_position_loc, 3, GL_FLOAT,
-      GL_FALSE, 5 * sizeof (GLfloat), v_vertices);
+      GL_FALSE, 5 * sizeof (GLfloat), positions);
 
   /* Load the texture coordinate */
   gl->VertexAttribPointer (attr_texture_loc, 2, GL_FLOAT,
-      GL_FALSE, 5 * sizeof (GLfloat), &v_vertices[3]);
+      GL_FALSE, 5 * sizeof (GLfloat), &texture_coordinates[3]);
 
   gl->EnableVertexAttribArray (attr_position_loc);
   gl->EnableVertexAttribArray (attr_texture_loc);
 
   gl->ActiveTexture (GL_TEXTURE0);
   gl->BindTexture (GL_TEXTURE_2D, texture);
-  gst_gl_shader_set_uniform_1i (cube_filter->shader, "s_texture", 0);
-  gst_gl_shader_set_uniform_1f (cube_filter->shader, "xrot_degree",
-      cube_filter->xrotation);
-  gst_gl_shader_set_uniform_1f (cube_filter->shader, "yrot_degree",
-      cube_filter->yrotation);
-  gst_gl_shader_set_uniform_1f (cube_filter->shader, "zrot_degree",
-      cube_filter->zrotation);
+  gst_gl_shader_set_uniform_1i (cube_filter->shader, "texture", 0);
 
-  graphene_matrix_to_float (m, temp_matrix);
-  gst_gl_shader_set_uniform_matrix_4fv (cube_filter->shader, "u_matrix", 1,
+  //graphene_matrix_to_float (&model_matrix, temp_matrix);
+  //gst_gl_shader_set_uniform_matrix_4fv (cube_filter->shader, "u_matrix", 1,
+  //    GL_FALSE, temp_matrix);
+
+  graphene_matrix_to_float (&rotation_matrix, temp_matrix);
+  gst_gl_shader_set_uniform_matrix_4fv (cube_filter->shader, "rotation_matrix",
+      1, GL_FALSE, temp_matrix);
+
+  graphene_matrix_to_float (&scale_matrix, temp_matrix);
+  gst_gl_shader_set_uniform_matrix_4fv (cube_filter->shader, "scale_matrix", 1,
       GL_FALSE, temp_matrix);
 
+  graphene_matrix_to_float (&translation_matrix, temp_matrix);
+  gst_gl_shader_set_uniform_matrix_4fv (cube_filter->shader,
+      "translation_matrix", 1, GL_FALSE, temp_matrix);
+  /*
+     gst_gl_shader_set_uniform_4f (cube_filter->shader, "translation",
+     cube_filter->xtranslation,
+     cube_filter->ytranslation, cube_filter->ztranslation, 0);
+   */
 
-  gst_gl_shader_set_uniform_4f (cube_filter->shader, "translation",
-      cube_filter->xtranslation,
-      cube_filter->ytranslation, cube_filter->ztranslation, 0);
-
-  gl->DrawElements (GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, indices);
+  gl->DrawElements (GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, indices);
 
   gl->DisableVertexAttribArray (attr_position_loc);
   gl->DisableVertexAttribArray (attr_texture_loc);
