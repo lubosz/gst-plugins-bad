@@ -21,20 +21,19 @@
 /**
  * SECTION:element-gltransformation
  *
- * Transform video on the GPU.
+ * Transforms video on the GPU.
  *
  * <refsect2>
  * <title>Examples</title>
  * |[
- * gst-launch -v videotestsrc ! glupload ! GLTransformation ! glimagesink
- * ]| A pipeline to mpa textures on the 6 cube faces..
- * FBO is required.
+ * gst-launch -v videotestsrc ! gltransformation xrotate=45 ! glimagesink
+ * ]| A pipeline to rotate by 45 degrees
  * |[
- * gst-launch -v videotestsrc ! glupload ! GLTransformation ! video/x-raw-gl, width=640, height=480 ! glimagesink
- * ]| Resize scene after drawing the cube.
+ * gst-launch -v videotestsrc ! gltransformation xtranslate=4 ! video/x-raw-gl, width=640, height=480 ! glimagesink
+ * ]| Resize scene after drawing.
  * The scene size is greater than the input video size.
   |[
- * gst-launch -v videotestsrc ! glupload ! video/x-raw-gl, width=640, height=480  ! GLTransformation ! glimagesink
+ * gst-launch -v videotestsrc ! video/x-raw-gl, width=640, height=480  ! gltransformation xscale=1.5 ! glimagesink
  * ]| Resize scene before drawing the cube.
  * The scene size is greater than the input video size.
  * </refsect2>
@@ -97,34 +96,24 @@ static gboolean gst_gl_transformation_filter_texture (GstGLFilter * filter,
 
 /* vertex source */
 static const gchar *cube_v_src =
-    "attribute vec4 position;                                   \n"
-    //"attribute vec3 color;                                   \n"
-    "attribute vec2 texture_coordinate;                                   \n"
-//    "uniform mat4 u_matrix;                                       \n"
-    "uniform mat4 rotation_matrix;                                       \n"
-    "uniform mat4 scale_matrix;                                       \n"
-    "uniform mat4 translation_matrix;                                       \n"
-    "varying vec2 out_texture_coordinate;                                     \n"
-    //"varying vec3 out_color;                                     \n"
+    "attribute vec4 position;                                     \n"
+    "attribute vec2 texture_coordinate;                           \n"
+    "uniform mat4 model_matrix;                                   \n"
+    "varying vec2 out_texture_coordinate;                         \n"
     "void main()                                                  \n"
     "{                                                            \n"
-    "   gl_Position = translation_matrix * rotation_matrix * scale_matrix * position; \n"
-    "   out_texture_coordinate = texture_coordinate;                                  \n"
-    //"   out_color = color;\n"
+    "   gl_Position = model_matrix * position;                    \n"
+    "   out_texture_coordinate = texture_coordinate;              \n"
     "}                                                            \n";
 
 /* fragment source */
 static const gchar *cube_f_src =
-//    "precision mediump float;                            \n"
-    "varying vec2 out_texture_coordinate;                            \n"
-    //"varying vec3 out_color;                            \n"
-    "uniform sampler2D texture;                        \n"
-    "void main()                                         \n"
-    "{                                                   \n"
-    "  gl_FragColor = texture2D( texture, out_texture_coordinate );\n"
-    //"    gl_FragColor = vec4(out_texture_coordinate.x, out_texture_coordinate.y, 0, 1); \n"
-    //"gl_FragColor = vec4(out_color, 1);\n"
-    "}                                                   \n";
+    "varying vec2 out_texture_coordinate;                         \n"
+    "uniform sampler2D texture;                                   \n"
+    "void main()                                                  \n"
+    "{                                                            \n"
+    "  gl_FragColor = texture2D (texture, out_texture_coordinate);\n"
+    "}                                                            \n";
 
 static void
 gst_gl_transformation_class_init (GstGLTransformationClass * klass)
@@ -419,38 +408,6 @@ gst_gl_transformation_filter_texture (GstGLFilter * filter, guint in_tex,
 }
 
 static void
-print_matrix (const gchar * name, graphene_matrix_t * m)
-{
-
-  float a0 = graphene_matrix_get_value (m, 0, 0);
-  float a1 = graphene_matrix_get_value (m, 0, 1);
-  float a2 = graphene_matrix_get_value (m, 0, 2);
-  float a3 = graphene_matrix_get_value (m, 0, 3);
-
-  float b0 = graphene_matrix_get_value (m, 1, 0);
-  float b1 = graphene_matrix_get_value (m, 1, 1);
-  float b2 = graphene_matrix_get_value (m, 1, 2);
-  float b3 = graphene_matrix_get_value (m, 1, 3);
-
-  float c0 = graphene_matrix_get_value (m, 2, 0);
-  float c1 = graphene_matrix_get_value (m, 2, 1);
-  float c2 = graphene_matrix_get_value (m, 2, 2);
-  float c3 = graphene_matrix_get_value (m, 2, 3);
-
-  float d0 = graphene_matrix_get_value (m, 3, 0);
-  float d1 = graphene_matrix_get_value (m, 3, 1);
-  float d2 = graphene_matrix_get_value (m, 3, 2);
-  float d3 = graphene_matrix_get_value (m, 3, 3);
-
-  g_print ("=========%s=========\n", name);
-  g_print ("%.2f %.2f %.2f %.2f\n", a0, a1, a2, a3);
-  g_print ("%.2f %.2f %.2f %.2f\n", b0, b1, b2, b3);
-  g_print ("%.2f %.2f %.2f %.2f\n", c0, c1, c2, c3);
-  g_print ("%.2f %.2f %.2f %.2f\n", d0, d1, d2, d3);
-  g_print ("===================\n");
-}
-
-static void
 _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
 {
   GstGLFilter *filter = GST_GL_FILTER (stuff);
@@ -465,15 +422,6 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
      -1.0, -1.0,  1.0, 1.0,
   };
 
-/*
-  const GLfloat colors[] = {
-     1.0, 0.0, 0.0, 
-     0.0, 1.0, 0.0,
-     0.0, 0.0, 1.0, 
-     1.0, 1.0, 1.0
-  };
-*/
-
   const GLfloat texture_coordinates[] = {
      0.0,  1.0, 
      1.0,  1.0,
@@ -483,13 +431,10 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
 
 /* *INDENT-ON* */
 
-  GLushort indices[] = {
-    0, 1, 2, 3, 0
-  };
+  GLushort indices[] = { 0, 1, 2, 3, 0 };
 
   GLint attr_position_loc = 0;
   GLint attr_texture_loc = 0;
-  //GLint attr_color_loc = 0;
 
   GLfloat temp_matrix[16];
 
@@ -498,34 +443,13 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
       cube_filter->ytranslation,
       cube_filter->ztranslation);
 
-  graphene_matrix_t translation_matrix;
-  graphene_matrix_t scale_matrix;
-  graphene_matrix_t rotation_matrix;
+  graphene_matrix_t model_matrix;
 
-  graphene_matrix_init_translate (&translation_matrix, &translation_vector);
-  graphene_matrix_init_scale (&scale_matrix,
+  graphene_matrix_init_translate (&model_matrix, &translation_vector);
+  graphene_matrix_rotate (&model_matrix,
+      cube_filter->xrotation * GRAPHENE_PI / 180.f, graphene_vec3_z_axis ());
+  graphene_matrix_scale (&model_matrix,
       cube_filter->xscale, cube_filter->yscale, 1.0f);
-  graphene_matrix_init_rotate (&rotation_matrix,
-      (G_PI / 180.f) * cube_filter->xrotation, graphene_vec3_z_axis ());
-
-
-  /*
-     graphene_matrix_t model_matrix;
-     graphene_matrix_init_identity (&model_matrix);
-     graphene_matrix_translate(&model_matrix, &translation_vector);
-     graphene_matrix_scale (&model_matrix, 
-     cube_filter->xscale, 
-     cube_filter->yscale, 
-     1.0f);
-     graphene_matrix_rotate(&model_matrix, (G_PI / 180.f) * cube_filter->xrotation, graphene_vec3_z_axis());
-   */
-
-  //graphene_matrix_multiply(&scale_matrix, &rotation_matrix, &model_matrix);
-
-  //print_matrix ("translation", &translation_matrix);
-  //print_matrix ("scale", &scale_matrix);
-  //print_matrix ("rotation", &rotation_matrix);
-  print_matrix ("model", &translation_matrix);
 
   gl->Enable (GL_DEPTH_TEST);
 
@@ -537,9 +461,6 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
   attr_position_loc =
       gst_gl_shader_get_attribute_location (cube_filter->shader, "position");
 
-  //attr_color_loc =
-  //    gst_gl_shader_get_attribute_location (cube_filter->shader, "color");
-
   attr_texture_loc =
       gst_gl_shader_get_attribute_location (cube_filter->shader,
       "texture_coordinate");
@@ -548,14 +469,10 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
   gl->VertexAttribPointer (attr_position_loc, 4, GL_FLOAT,
       GL_FALSE, 4 * sizeof (GLfloat), positions);
 
-  //gl->VertexAttribPointer (attr_color_loc, 4, GL_FLOAT,
-  //    GL_FALSE, 3 * sizeof (GLfloat), colors);
-
   /* Load the texture coordinate */
   gl->VertexAttribPointer (attr_texture_loc, 4, GL_FLOAT,
       GL_FALSE, 2 * sizeof (GLfloat), texture_coordinates);
 
-  //gl->EnableVertexAttribArray (attr_color_loc);
   gl->EnableVertexAttribArray (attr_position_loc);
   gl->EnableVertexAttribArray (attr_texture_loc);
 
@@ -563,32 +480,14 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
   gl->BindTexture (GL_TEXTURE_2D, texture);
   gst_gl_shader_set_uniform_1i (cube_filter->shader, "texture", 0);
 
-  //graphene_matrix_to_float (&model_matrix, temp_matrix);
-  //gst_gl_shader_set_uniform_matrix_4fv (cube_filter->shader, "u_matrix", 1,
-  //    GL_FALSE, temp_matrix);
-
-  graphene_matrix_to_float (&rotation_matrix, temp_matrix);
-  gst_gl_shader_set_uniform_matrix_4fv (cube_filter->shader, "rotation_matrix",
+  graphene_matrix_to_float (&model_matrix, temp_matrix);
+  gst_gl_shader_set_uniform_matrix_4fv (cube_filter->shader, "model_matrix",
       1, GL_FALSE, temp_matrix);
-
-  graphene_matrix_to_float (&scale_matrix, temp_matrix);
-  gst_gl_shader_set_uniform_matrix_4fv (cube_filter->shader, "scale_matrix", 1,
-      GL_FALSE, temp_matrix);
-
-  graphene_matrix_to_float (&translation_matrix, temp_matrix);
-  gst_gl_shader_set_uniform_matrix_4fv (cube_filter->shader,
-      "translation_matrix", 1, GL_FALSE, temp_matrix);
-  /*
-     gst_gl_shader_set_uniform_4f (cube_filter->shader, "translation",
-     cube_filter->xtranslation,
-     cube_filter->ytranslation, cube_filter->ztranslation, 0);
-   */
 
   gl->DrawElements (GL_TRIANGLE_STRIP, 5, GL_UNSIGNED_SHORT, indices);
 
   gl->DisableVertexAttribArray (attr_position_loc);
   gl->DisableVertexAttribArray (attr_texture_loc);
-  //gl->DisableVertexAttribArray (attr_color_loc);
 
   gl->Disable (GL_DEPTH_TEST);
 }
