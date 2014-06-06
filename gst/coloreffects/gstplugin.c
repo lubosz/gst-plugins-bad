@@ -25,6 +25,7 @@
 
 #include "gstcoloreffects.h"
 #include "gstchromahold.h"
+#include "gstchannelextract.h"
 
 struct _elements_entry
 {
@@ -35,6 +36,7 @@ struct _elements_entry
 static const struct _elements_entry _elements[] = {
   {"coloreffects", gst_color_effects_get_type},
   {"chromahold", gst_chroma_hold_get_type},
+  {"channelextract", gst_channel_extract_get_type},
   {NULL, 0},
 };
 
