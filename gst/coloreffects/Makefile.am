@@ -3,7 +3,8 @@ plugin_LTLIBRARIES = libgstcoloreffects.la
 libgstcoloreffects_la_SOURCES = \
 	gstplugin.c \
 	gstcoloreffects.c \
-	gstchromahold.c
+	gstchromahold.c \
+	gstchannelextract.c
 libgstcoloreffects_la_CFLAGS = \
 	$(GST_PLUGINS_BASE_CFLAGS) \
 	$(GST_BASE_CFLAGS) \
@@ -15,7 +16,7 @@ libgstcoloreffects_la_LIBADD = \
 libgstcoloreffects_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libgstcoloreffects_la_LIBTOOLFLAGS = $(GST_PLUGIN_LIBTOOLFLAGS)
 
-noinst_HEADERS = gstcoloreffects.h gstchromahold.h
+noinst_HEADERS = gstcoloreffects.h gstchromahold.h gstchannelextract.h
 
 Android.mk: Makefile.am $(BUILT_SOURCES)
 	androgenizer \
