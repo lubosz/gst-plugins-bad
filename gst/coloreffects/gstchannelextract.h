@@ -1,10 +1,5 @@
 /* GStreamer
  *
- * Copyright (C) 1999 Erik Walthinsen <omega@cse.ogi.edu>
- * Copyright (C) 2007 Wim Taymans <wim.taymans@collabora.co.uk>
- * Copyright (C) 2007 Edward Hervey <edward.hervey@collabora.co.uk>
- * Copyright (C) 2007 Jan Schmidt <thaytan@noraisin.net>
- * Copyright (C) 2010 Sebastian Dröge <sebastian.droege@collabora.co.uk>
  * Copyright (C) 2014 Lubosz Sarnecki <lubosz@gmail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -29,6 +24,7 @@
 #include <gst/gst.h>
 #include <gst/video/video.h>
 #include <gst/video/gstvideofilter.h>
+#include <gst/base/gstcollectpads.h>
 
 G_BEGIN_DECLS
 #define GST_TYPE_CHANNEL_EXTRACT \
@@ -56,14 +52,13 @@ struct _GstChannelExtract
   GstVideoFormat format;
   gint width, height;
 
-  guint channel;
+  guint channel_enum;
+  const gchar* channel_name;
 
   /* processing function */
-  void (*process) (GstVideoFrame * frame, gint width, gint height,
-      GstChannelExtract * channel_extract);
+  void (*process) (GstChannelExtract * channel_extract, gint width, gint height,
+      GstVideoFrame * src, GstVideoFrame * dest);
 
-  /* pre-calculated values */
-  gint hue;
 };
 
 struct _GstChannelExtractClass

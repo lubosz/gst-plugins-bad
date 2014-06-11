@@ -1,9 +1,4 @@
 /* GStreamer
- * Copyright (C) 1999 Erik Walthinsen <omega@cse.ogi.edu>
- * Copyright (C) 2007 Wim Taymans <wim.taymans@collabora.co.uk>
- * Copyright (C) 2007 Edward Hervey <edward.hervey@collabora.co.uk>
- * Copyright (C) 2007 Jan Schmidt <thaytan@noraisin.net>
- * Copyright (C) 2010 Sebastian Dröge <sebastian.droege@collabora.co.uk>
  * Copyright (C) 2014 Lubosz Sarnecki <lubosz@gmail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -41,10 +36,6 @@
 #include "config.h"
 #endif
 
-/* FIXME 0.11: suppress warnings for deprecated API such as GStaticRecMutex
- * with newer GLib versions (>= 2.31.0) */
-#define GLIB_DISABLE_DEPRECATION_WARNINGS
-
 #include "gstchannelextract.h"
 
 #include <stdlib.h>
@@ -54,7 +45,8 @@
 GST_DEBUG_CATEGORY_STATIC (gst_channel_extract_debug);
 #define GST_CAT_DEFAULT gst_channel_extract_debug
 
-#define DEFAULT_CHANNEL 0
+#define DEFAULT_CHANNEL_NAME "A"
+#define DEFAULT_CHANNEL_ENUM GST_VIDEO_COMP_A
 
 enum
 {
@@ -67,8 +59,7 @@ static GstStaticPadTemplate gst_channel_extract_src_template =
 GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS (GST_VIDEO_CAPS_MAKE
-        ("{ ARGB, BGRA, ABGR, RGBA, xRGB, BGRx, xBGR, RGBx}"))
+    GST_STATIC_CAPS (GST_VIDEO_CAPS_MAKE ("{ GRAY8 }"))
     );
 
 static GstStaticPadTemplate gst_channel_extract_sink_template =
@@ -76,7 +67,7 @@ GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
     GST_STATIC_CAPS (GST_VIDEO_CAPS_MAKE
-        ("{ ARGB, BGRA, ABGR, RGBA, xRGB, BGRx, xBGR, RGBx}"))
+        ("{ ARGB, BGRA, ABGR, RGBA, xRGB, BGRx, xBGR, RGBx, GRAY8 }"))
     );
 
 #define GST_CHANNEL_EXTRACT_LOCK(self) G_STMT_START { \
@@ -95,8 +86,8 @@ static gboolean gst_channel_extract_start (GstBaseTransform * trans);
 static gboolean gst_channel_extract_set_info (GstVideoFilter * vfilter,
     GstCaps * incaps, GstVideoInfo * in_info, GstCaps * outcaps,
     GstVideoInfo * out_info);
-static GstFlowReturn gst_channel_extract_transform_frame_ip (GstVideoFilter *
-    vfilter, GstVideoFrame * frame);
+static GstFlowReturn gst_channel_extract_transform_frame (GstVideoFilter *
+    vfilter, GstVideoFrame * src, GstVideoFrame * dest);
 static void gst_channel_extract_before_transform (GstBaseTransform * btrans,
     GstBuffer * buf);
 
@@ -125,16 +116,16 @@ gst_channel_extract_class_init (GstChannelExtractClass * klass)
   gobject_class->finalize = gst_channel_extract_finalize;
 
   g_object_class_install_property (G_OBJECT_CLASS (klass), PROP_CHANNEL,
-      g_param_spec_uint ("channel", "Source Channel", "The channel to sample",
-          0, 3, DEFAULT_CHANNEL,
+      g_param_spec_string ("channel", "Source Channel", "The channel to sample",
+          DEFAULT_CHANNEL_NAME,
           G_PARAM_READWRITE | GST_PARAM_CONTROLLABLE | G_PARAM_STATIC_STRINGS));
 
   btrans_class->start = GST_DEBUG_FUNCPTR (gst_channel_extract_start);
   btrans_class->before_transform =
       GST_DEBUG_FUNCPTR (gst_channel_extract_before_transform);
 
-  vfilter_class->transform_frame_ip =
-      GST_DEBUG_FUNCPTR (gst_channel_extract_transform_frame_ip);
+  vfilter_class->transform_frame =
+      GST_DEBUG_FUNCPTR (gst_channel_extract_transform_frame);
   vfilter_class->set_info = GST_DEBUG_FUNCPTR (gst_channel_extract_set_info);
 
   gst_element_class_set_static_metadata (gstelement_class,
@@ -153,7 +144,8 @@ gst_channel_extract_class_init (GstChannelExtractClass * klass)
 static void
 gst_channel_extract_init (GstChannelExtract * self)
 {
-  self->channel = DEFAULT_CHANNEL;
+  self->channel_name = DEFAULT_CHANNEL_NAME;
+  self->channel_enum = DEFAULT_CHANNEL_ENUM;
 
   g_mutex_init (&self->lock);
 }
@@ -177,7 +169,28 @@ gst_channel_extract_set_property (GObject * object, guint prop_id,
   GST_CHANNEL_EXTRACT_LOCK (self);
   switch (prop_id) {
     case PROP_CHANNEL:
-      self->channel = g_value_get_uint (value);
+      self->channel_name = g_value_get_string (value);
+      switch (self->channel_name[0]) {
+        case 'R':
+        case 'r':
+          self->channel_enum = GST_VIDEO_COMP_R;
+          break;
+        case 'G':
+        case 'g':
+          self->channel_enum = GST_VIDEO_COMP_G;
+          break;
+        case 'B':
+        case 'b':
+          self->channel_enum = GST_VIDEO_COMP_B;
+          break;
+        case 'A':
+        case 'a':
+          self->channel_enum = GST_VIDEO_COMP_A;
+          break;
+        default:
+          G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+          break;
+      }
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -195,7 +208,7 @@ gst_channel_extract_get_property (GObject * object, guint prop_id,
 
   switch (prop_id) {
     case PROP_CHANNEL:
-      g_value_set_uint (value, self->channel);
+      g_value_set_string (value, self->channel_name);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -230,34 +243,68 @@ gst_channel_extract_set_info (GstVideoFilter * vfilter, GstCaps * incaps,
 }
 
 static void
-gst_channel_extract_process_xrgb (GstVideoFrame * frame, gint width,
-    gint height, GstChannelExtract * self)
+gst_channel_extract_process_xrgb (GstChannelExtract * self, gint width,
+    gint height, GstVideoFrame * src, GstVideoFrame * dest)
 {
   gint i, j;
-  gint channel_color;
   gint p[4];
   gint row_wrap;
-  guint8 *dest;
+  guint8 *src_plane;
+  guint8 *dest_plane;
 
-  dest = GST_VIDEO_FRAME_PLANE_DATA (frame, 0);
-  p[0] = GST_VIDEO_FRAME_COMP_POFFSET (frame, 3);
-  p[1] = GST_VIDEO_FRAME_COMP_POFFSET (frame, 0);
-  p[2] = GST_VIDEO_FRAME_COMP_POFFSET (frame, 1);
-  p[3] = GST_VIDEO_FRAME_COMP_POFFSET (frame, 2);
-  row_wrap = GST_VIDEO_FRAME_PLANE_STRIDE (frame, 0) - 4 * width;
+  gint channel_color;
+
+  gint channel_color_offset =
+      GST_VIDEO_FRAME_COMP_POFFSET (src, self->channel_enum);
+
+  src_plane = GST_VIDEO_FRAME_PLANE_DATA (src, 0);
+  dest_plane = GST_VIDEO_FRAME_PLANE_DATA (dest, 0);
+  p[0] = GST_VIDEO_FRAME_COMP_POFFSET (src, 3);
+  p[1] = GST_VIDEO_FRAME_COMP_POFFSET (src, 0);
+  p[2] = GST_VIDEO_FRAME_COMP_POFFSET (src, 1);
+  p[3] = GST_VIDEO_FRAME_COMP_POFFSET (src, 2);
+  row_wrap = GST_VIDEO_FRAME_PLANE_STRIDE (src, 0) - 4 * width;
 
   for (i = 0; i < height; i++) {
     for (j = 0; j < width; j++) {
-      channel_color = dest[p[self->channel]];
+      channel_color = src_plane[channel_color_offset];
 
-      dest[p[0]] = 255;
-      dest[p[1]] = channel_color;
-      dest[p[2]] = channel_color;
-      dest[p[3]] = channel_color;
+      dest_plane[p[0]] = 255;
+      dest_plane[p[1]] = channel_color;
+      dest_plane[p[2]] = channel_color;
+      dest_plane[p[3]] = channel_color;
 
-      dest += 4;
+      src_plane += 4;
+      dest_plane += 4;
     }
-    dest += row_wrap;
+    src_plane += row_wrap;
+    dest_plane += row_wrap;
+  }
+}
+
+static void
+gst_channel_extract_process_gray (GstChannelExtract * self, gint width,
+    gint height, GstVideoFrame * src, GstVideoFrame * dest)
+{
+  gint i, j;
+  gint row_wrap;
+  guint8 *src_plane;
+  guint8 *dest_plane;
+
+  src_plane = GST_VIDEO_FRAME_PLANE_DATA (src, 0);
+  dest_plane = GST_VIDEO_FRAME_PLANE_DATA (dest, 0);
+  row_wrap = GST_VIDEO_FRAME_PLANE_STRIDE (src, 0) - width;
+
+  for (i = 0; i < height; i++) {
+    for (j = 0; j < width; j++) {
+
+      dest_plane[0] = src_plane[0];
+
+      src_plane += 1;
+      dest_plane += 1;
+    }
+    src_plane += row_wrap;
+    dest_plane += row_wrap;
   }
 }
 
@@ -277,6 +324,9 @@ gst_channel_extract_set_process_function (GstChannelExtract * self)
     case GST_VIDEO_FORMAT_RGBx:
     case GST_VIDEO_FORMAT_BGRx:
       self->process = gst_channel_extract_process_xrgb;
+      break;
+    case GST_VIDEO_FORMAT_GRAY8:
+      self->process = gst_channel_extract_process_gray;
       break;
     default:
       break;
@@ -305,8 +355,8 @@ gst_channel_extract_before_transform (GstBaseTransform * btrans,
 }
 
 static GstFlowReturn
-gst_channel_extract_transform_frame_ip (GstVideoFilter * vfilter,
-    GstVideoFrame * frame)
+gst_channel_extract_transform_frame (GstVideoFilter * vfilter,
+    GstVideoFrame * src, GstVideoFrame * dest)
 {
   GstChannelExtract *self = GST_CHANNEL_EXTRACT (vfilter);
 
@@ -318,7 +368,7 @@ gst_channel_extract_transform_frame_ip (GstVideoFilter * vfilter,
     return GST_FLOW_NOT_NEGOTIATED;
   }
 
-  self->process (frame, self->width, self->height, self);
+  self->process (self, self->width, self->height, src, dest);
 
   GST_CHANNEL_EXTRACT_UNLOCK (self);
 
