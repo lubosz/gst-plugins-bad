@@ -97,11 +97,13 @@ static gboolean gst_gl_transformation_filter_texture (GstGLFilter * filter,
 static const gchar *cube_v_src =
     "attribute vec4 position;                                     \n"
     "attribute vec2 texture_coordinate;                           \n"
-    "uniform mat4 model_matrix;                                   \n"
+    "uniform mat4 model;                                          \n"
+    "uniform mat4 view;                                           \n"
+    "uniform mat4 projection;                                     \n"
     "varying vec2 out_texture_coordinate;                         \n"
     "void main()                                                  \n"
     "{                                                            \n"
-    "   gl_Position = model_matrix * position;                    \n"
+    "   gl_Position = projection * view * model * position;       \n"
     "   out_texture_coordinate = texture_coordinate;              \n"
     "}                                                            \n";
 
@@ -436,12 +438,38 @@ gst_gl_transformation_callback (gpointer stuff)
       transformation->ztranslation);
 
   graphene_matrix_t model_matrix;
+  graphene_matrix_t projection_matrix;
+  graphene_matrix_t view_matrix;
+
+  graphene_vec3_t eye;
+  graphene_vec3_t center;
+  graphene_vec3_t up;
+
+  graphene_vec3_init (&eye, 0.f, 0.f, 5.f);
+  graphene_vec3_init (&center, 0.f, 0.f, 0.f);
+  graphene_vec3_init (&up, 0.f, 1.f, 0.f);
 
   graphene_matrix_init_translate (&model_matrix, &translation_vector);
   graphene_matrix_rotate (&model_matrix,
       transformation->xrotation * GRAPHENE_PI / 180.f, graphene_vec3_z_axis ());
   graphene_matrix_scale (&model_matrix,
       transformation->xscale, transformation->yscale, 1.0f);
+
+  graphene_matrix_init_perspective (&projection_matrix,
+      transformation->fovy,
+      transformation->aspect, transformation->znear, transformation->zfar);
+
+  /*
+     graphene_matrix_init_ortho (&projection_matrix,
+     -0.5,
+     0.5,
+     -0.5,
+     0.5,
+     transformation->znear,
+     transformation->zfar);
+   */
+
+  graphene_matrix_init_look_at (&view_matrix, &eye, &center, &up);
 
   gst_gl_context_clear_shader (filter->context);
   gl->BindTexture (GL_TEXTURE_2D, 0);
@@ -478,7 +506,15 @@ gst_gl_transformation_callback (gpointer stuff)
   gst_gl_shader_set_uniform_1i (transformation->shader, "texture", 0);
 
   graphene_matrix_to_float (&model_matrix, temp_matrix);
-  gst_gl_shader_set_uniform_matrix_4fv (transformation->shader, "model_matrix",
+  gst_gl_shader_set_uniform_matrix_4fv (transformation->shader, "model",
+      1, GL_FALSE, temp_matrix);
+
+  graphene_matrix_to_float (&view_matrix, temp_matrix);
+  gst_gl_shader_set_uniform_matrix_4fv (transformation->shader, "view",
+      1, GL_FALSE, temp_matrix);
+
+  graphene_matrix_to_float (&projection_matrix, temp_matrix);
+  gst_gl_shader_set_uniform_matrix_4fv (transformation->shader, "projection",
       1, GL_FALSE, temp_matrix);
 
   gl->DrawElements (GL_TRIANGLE_STRIP, 5, GL_UNSIGNED_SHORT, indices);
