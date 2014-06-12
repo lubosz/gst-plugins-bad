@@ -103,7 +103,7 @@ static const gchar *cube_v_src =
     "varying vec2 out_texture_coordinate;                         \n"
     "void main()                                                  \n"
     "{                                                            \n"
-    "   gl_Position = model * position;                           \n"
+    "   gl_Position = projection * view * model * position;       \n"
     "   out_texture_coordinate = texture_coordinate;              \n"
     "}                                                            \n";
 
@@ -410,10 +410,10 @@ gst_gl_transformation_callback (gpointer stuff)
 
 /* *INDENT-OFF* */
   const GLfloat positions[] = {
-     -1.0,  1.0,  1.0, 1.0,
-      1.0,  1.0,  1.0, 1.0,
-      1.0, -1.0, -1.0, 1.0,
-     -1.0, -1.0,  1.0, 1.0,
+     -1.0,  1.0,  0.0, 1.0,
+      1.0,  1.0,  0.0, 1.0,
+      1.0, -1.0,  0.0, 1.0,
+     -1.0, -1.0,  0.0, 1.0,
   };
 
   const GLfloat texture_coordinates[] = {
@@ -445,12 +445,11 @@ gst_gl_transformation_callback (gpointer stuff)
   graphene_vec3_t center;
   graphene_vec3_t up;
 
-  graphene_vec3_init (&eye, 0.f, 0.f, 5.f);
+  graphene_vec3_init (&eye, 0.f, 0.f, 2.f);
   graphene_vec3_init (&center, 0.f, 0.f, 0.f);
   graphene_vec3_init (&up, 0.f, 1.f, 0.f);
 
-  graphene_matrix_init_translate (&model_matrix, &translation_vector);
-  graphene_matrix_rotate (&model_matrix,
+  graphene_matrix_init_rotate (&model_matrix,
       transformation->xrotation, graphene_vec3_x_axis ());
   graphene_matrix_rotate (&model_matrix,
       transformation->yrotation, graphene_vec3_y_axis ());
@@ -458,6 +457,7 @@ gst_gl_transformation_callback (gpointer stuff)
       transformation->zrotation, graphene_vec3_z_axis ());
   graphene_matrix_scale (&model_matrix,
       transformation->xscale, transformation->yscale, 1.0f);
+  graphene_matrix_translate (&model_matrix, &translation_vector);
 
   graphene_matrix_init_perspective (&projection_matrix,
       transformation->fovy,
@@ -496,11 +496,11 @@ gst_gl_transformation_callback (gpointer stuff)
 
   /* Load the vertex position */
   gl->VertexAttribPointer (attr_position_loc, 4, GL_FLOAT,
-      GL_FALSE, 4 * sizeof (GLfloat), positions);
+      GL_FALSE, 0, positions);
 
   /* Load the texture coordinate */
-  gl->VertexAttribPointer (attr_texture_loc, 4, GL_FLOAT,
-      GL_FALSE, 2 * sizeof (GLfloat), texture_coordinates);
+  gl->VertexAttribPointer (attr_texture_loc, 2, GL_FLOAT,
+      GL_FALSE, 0, texture_coordinates);
 
   gl->EnableVertexAttribArray (attr_position_loc);
   gl->EnableVertexAttribArray (attr_texture_loc);
