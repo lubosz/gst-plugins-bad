@@ -64,6 +64,7 @@ struct _GstGLTransformation
     gdouble aspect;
     gdouble znear;
     gdouble zfar;
+    gboolean ortho;
 };
 
 struct _GstGLTransformationClass

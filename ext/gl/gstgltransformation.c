@@ -26,14 +26,14 @@
  * <refsect2>
  * <title>Examples</title>
  * |[
- * gst-launch -v videotestsrc ! gltransformation xrotate=45 ! glimagesink
+ * gst-launch gltestsrc ! gltransformation xrotate=45 ! glimagesink
  * ]| A pipeline to rotate by 45 degrees
  * |[
- * gst-launch -v videotestsrc ! gltransformation xtranslate=4 ! video/x-raw-gl, width=640, height=480 ! glimagesink
+ * gst-launch gltestsrc ! gltransformation xtranslate=4 ! video/x-raw, width=640, height=480 ! glimagesink
  * ]| Resize scene after drawing.
  * The scene size is greater than the input video size.
   |[
- * gst-launch -v videotestsrc ! video/x-raw-gl, width=640, height=480  ! gltransformation xscale=1.5 ! glimagesink
+ * gst-launch gltestsrc ! video/x-raw, width=1280, height=720 ! gltransformation xscale=1.5 ! glimagesink
  * ]| Resize scene before drawing the cube.
  * The scene size is greater than the input video size.
  * </refsect2>
@@ -58,9 +58,7 @@ enum
   PROP_GREEN,
   PROP_BLUE,
   PROP_FOVY,
-  PROP_ASPECT,
-  PROP_ZNEAR,
-  PROP_ZFAR,
+  PROP_ORTHO,
   PROP_XTRANSLATION,
   PROP_YTRANSLATION,
   PROP_ZTRANSLATION,
@@ -95,26 +93,24 @@ static gboolean gst_gl_transformation_filter_texture (GstGLFilter * filter,
 
 /* vertex source */
 static const gchar *cube_v_src =
-    "attribute vec4 position;                                     \n"
-    "attribute vec2 texture_coordinate;                           \n"
-    "uniform mat4 model;                                          \n"
-    "uniform mat4 view;                                           \n"
-    "uniform mat4 projection;                                     \n"
-    "varying vec2 out_texture_coordinate;                         \n"
-    "void main()                                                  \n"
-    "{                                                            \n"
-    "   gl_Position = projection * view * model * position;       \n"
-    "   out_texture_coordinate = texture_coordinate;              \n"
-    "}                                                            \n";
+    "attribute vec4 position;                     \n"
+    "attribute vec2 uv;                           \n"
+    "uniform mat4 mvp;                            \n"
+    "varying vec2 out_uv;                         \n"
+    "void main()                                  \n"
+    "{                                            \n"
+    "   gl_Position = mvp * position;             \n"
+    "   out_uv = uv;                              \n"
+    "}                                            \n";
 
 /* fragment source */
 static const gchar *cube_f_src =
-    "varying vec2 out_texture_coordinate;                         \n"
-    "uniform sampler2D texture;                                   \n"
-    "void main()                                                  \n"
-    "{                                                            \n"
-    "  gl_FragColor = texture2D (texture, out_texture_coordinate);\n"
-    "}                                                            \n";
+    "varying vec2 out_uv;                         \n"
+    "uniform sampler2D texture;                   \n"
+    "void main()                                  \n"
+    "{                                            \n"
+    "  gl_FragColor = texture2D (texture, out_uv);\n"
+    "}                                            \n";
 
 static void
 gst_gl_transformation_class_init (GstGLTransformationClass * klass)
@@ -149,22 +145,12 @@ gst_gl_transformation_class_init (GstGLTransformationClass * klass)
 
   g_object_class_install_property (gobject_class, PROP_FOVY,
       g_param_spec_double ("fovy", "Fovy", "Field of view angle in degrees",
-          0.0, 180.0, 45.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          0.0, 180.0, 90.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
-  g_object_class_install_property (gobject_class, PROP_ASPECT,
-      g_param_spec_double ("aspect", "Aspect",
-          "Field of view in the x direction", 0.0, 100, 0.0,
+  g_object_class_install_property (gobject_class, PROP_ORTHO,
+      g_param_spec_boolean ("ortho", "Orthographic",
+          "Use orthographic projection", FALSE,
           G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-  g_object_class_install_property (gobject_class, PROP_ZNEAR,
-      g_param_spec_double ("znear", "Znear",
-          "Specifies the distance from the viewer to the near clipping plane",
-          0.0, 100.0, 0.1, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-  g_object_class_install_property (gobject_class, PROP_ZFAR,
-      g_param_spec_double ("zfar", "Zfar",
-          "Specifies the distance from the viewer to the far clipping plane",
-          0.0, 1000.0, 100.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   // Rotation
   g_object_class_install_property (gobject_class, PROP_XROTATION,
@@ -218,7 +204,7 @@ static void
 gst_gl_transformation_init (GstGLTransformation * filter)
 {
   filter->shader = NULL;
-  filter->fovy = 45;
+  filter->fovy = 90;
   filter->aspect = 0;
   filter->znear = 0.1;
   filter->zfar = 100;
@@ -248,14 +234,8 @@ gst_gl_transformation_set_property (GObject * object, guint prop_id,
     case PROP_FOVY:
       filter->fovy = g_value_get_double (value);
       break;
-    case PROP_ASPECT:
-      filter->aspect = g_value_get_double (value);
-      break;
-    case PROP_ZNEAR:
-      filter->znear = g_value_get_double (value);
-      break;
-    case PROP_ZFAR:
-      filter->zfar = g_value_get_double (value);
+    case PROP_ORTHO:
+      filter->ortho = g_value_get_boolean (value);
       break;
     case PROP_XTRANSLATION:
       filter->xtranslation = g_value_get_float (value);
@@ -306,14 +286,8 @@ gst_gl_transformation_get_property (GObject * object, guint prop_id,
     case PROP_FOVY:
       g_value_set_double (value, filter->fovy);
       break;
-    case PROP_ASPECT:
-      g_value_set_double (value, filter->aspect);
-      break;
-    case PROP_ZNEAR:
-      g_value_set_double (value, filter->znear);
-      break;
-    case PROP_ZFAR:
-      g_value_set_double (value, filter->zfar);
+    case PROP_ORTHO:
+      g_value_set_boolean (value, filter->ortho);
       break;
     case PROP_XTRANSLATION:
       g_value_set_float (value, filter->xtranslation);
@@ -409,11 +383,12 @@ gst_gl_transformation_callback (gpointer stuff)
   GstGLFuncs *gl = filter->context->gl_vtable;
 
 /* *INDENT-OFF* */
+
   const GLfloat positions[] = {
-     -1.0,  1.0,  0.0, 1.0,
-      1.0,  1.0,  0.0, 1.0,
-      1.0, -1.0,  0.0, 1.0,
-     -1.0, -1.0,  0.0, 1.0,
+     -1.0 * transformation->aspect,  1.0,  0.0, 1.0,
+      1.0 * transformation->aspect,  1.0,  0.0, 1.0,
+      1.0 * transformation->aspect, -1.0,  0.0, 1.0,
+     -1.0 * transformation->aspect, -1.0,  0.0, 1.0,
   };
 
   const GLfloat texture_coordinates[] = {
@@ -440,12 +415,14 @@ gst_gl_transformation_callback (gpointer stuff)
   graphene_matrix_t model_matrix;
   graphene_matrix_t projection_matrix;
   graphene_matrix_t view_matrix;
+  graphene_matrix_t mvp_matrix;
+  graphene_matrix_t vp_matrix;
 
   graphene_vec3_t eye;
   graphene_vec3_t center;
   graphene_vec3_t up;
 
-  graphene_vec3_init (&eye, 0.f, 0.f, 2.f);
+  graphene_vec3_init (&eye, 0.f, 0.f, 1.f);
   graphene_vec3_init (&center, 0.f, 0.f, 0.f);
   graphene_vec3_init (&up, 0.f, 1.f, 0.f);
 
@@ -459,21 +436,21 @@ gst_gl_transformation_callback (gpointer stuff)
       transformation->xscale, transformation->yscale, 1.0f);
   graphene_matrix_translate (&model_matrix, &translation_vector);
 
-  graphene_matrix_init_perspective (&projection_matrix,
-      transformation->fovy,
-      transformation->aspect, transformation->znear, transformation->zfar);
+  if (transformation->ortho) {
+    graphene_matrix_init_ortho (&projection_matrix,
+        -1 * transformation->aspect, 1 * transformation->aspect,
+        -1, 1, transformation->znear, transformation->zfar);
+  } else {
+    graphene_matrix_init_perspective (&projection_matrix,
+        transformation->fovy,
+        transformation->aspect, transformation->znear, transformation->zfar);
 
-  /*
-     graphene_matrix_init_ortho (&projection_matrix,
-     -0.5,
-     0.5,
-     -0.5,
-     0.5,
-     transformation->znear,
-     transformation->zfar);
-   */
+  }
 
   graphene_matrix_init_look_at (&view_matrix, &eye, &center, &up);
+
+  graphene_matrix_multiply (&projection_matrix, &view_matrix, &vp_matrix);
+  graphene_matrix_multiply (&vp_matrix, &model_matrix, &mvp_matrix);
 
   gst_gl_context_clear_shader (filter->context);
   gl->BindTexture (GL_TEXTURE_2D, 0);
@@ -491,8 +468,7 @@ gst_gl_transformation_callback (gpointer stuff)
       gst_gl_shader_get_attribute_location (transformation->shader, "position");
 
   attr_texture_loc =
-      gst_gl_shader_get_attribute_location (transformation->shader,
-      "texture_coordinate");
+      gst_gl_shader_get_attribute_location (transformation->shader, "uv");
 
   /* Load the vertex position */
   gl->VertexAttribPointer (attr_position_loc, 4, GL_FLOAT,
@@ -509,16 +485,8 @@ gst_gl_transformation_callback (gpointer stuff)
   gl->BindTexture (GL_TEXTURE_2D, transformation->in_tex);
   gst_gl_shader_set_uniform_1i (transformation->shader, "texture", 0);
 
-  graphene_matrix_to_float (&model_matrix, temp_matrix);
-  gst_gl_shader_set_uniform_matrix_4fv (transformation->shader, "model",
-      1, GL_FALSE, temp_matrix);
-
-  graphene_matrix_to_float (&view_matrix, temp_matrix);
-  gst_gl_shader_set_uniform_matrix_4fv (transformation->shader, "view",
-      1, GL_FALSE, temp_matrix);
-
-  graphene_matrix_to_float (&projection_matrix, temp_matrix);
-  gst_gl_shader_set_uniform_matrix_4fv (transformation->shader, "projection",
+  graphene_matrix_to_float (&mvp_matrix, temp_matrix);
+  gst_gl_shader_set_uniform_matrix_4fv (transformation->shader, "mvp",
       1, GL_FALSE, temp_matrix);
 
   gl->DrawElements (GL_TRIANGLE_STRIP, 5, GL_UNSIGNED_SHORT, indices);
