@@ -87,8 +87,7 @@ static gboolean gst_gl_transformation_set_caps (GstGLFilter * filter,
 
 static void gst_gl_transformation_reset (GstGLFilter * filter);
 static gboolean gst_gl_transformation_init_shader (GstGLFilter * filter);
-static void _callback_gles2 (gint width, gint height, guint texture,
-    gpointer stuff);
+static void gst_gl_transformation_callback (gpointer stuff);
 
 
 static gboolean gst_gl_transformation_filter_texture (GstGLFilter * filter,
@@ -224,6 +223,8 @@ gst_gl_transformation_init (GstGLTransformation * filter)
 
   filter->xscale = 1.0;
   filter->yscale = 1.0;
+
+  filter->in_tex = 0;
 }
 
 static void
@@ -346,10 +347,11 @@ static gboolean
 gst_gl_transformation_set_caps (GstGLFilter * filter, GstCaps * incaps,
     GstCaps * outcaps)
 {
-  GstGLTransformation *cube_filter = GST_GL_TRANSFORMATION (filter);
+  GstGLTransformation *transformation = GST_GL_TRANSFORMATION (filter);
 
-  if (cube_filter->aspect == 0)
-    cube_filter->aspect = (gdouble) GST_VIDEO_INFO_WIDTH (&filter->out_info) /
+  if (transformation->aspect == 0)
+    transformation->aspect =
+        (gdouble) GST_VIDEO_INFO_WIDTH (&filter->out_info) /
         (gdouble) GST_VIDEO_INFO_HEIGHT (&filter->out_info);
 
   return TRUE;
@@ -358,23 +360,23 @@ gst_gl_transformation_set_caps (GstGLFilter * filter, GstCaps * incaps,
 static void
 gst_gl_transformation_reset (GstGLFilter * filter)
 {
-  GstGLTransformation *cube_filter = GST_GL_TRANSFORMATION (filter);
+  GstGLTransformation *transformation = GST_GL_TRANSFORMATION (filter);
 
   /* blocking call, wait the opengl thread has destroyed the shader */
-  if (cube_filter->shader)
-    gst_gl_context_del_shader (filter->context, cube_filter->shader);
-  cube_filter->shader = NULL;
+  if (transformation->shader)
+    gst_gl_context_del_shader (filter->context, transformation->shader);
+  transformation->shader = NULL;
 }
 
 static gboolean
 gst_gl_transformation_init_shader (GstGLFilter * filter)
 {
-  GstGLTransformation *cube_filter = GST_GL_TRANSFORMATION (filter);
+  GstGLTransformation *transformation = GST_GL_TRANSFORMATION (filter);
 
   if (gst_gl_context_get_gl_api (filter->context)) {
     /* blocking call, wait the opengl thread has compiled the shader */
     return gst_gl_context_gen_shader (filter->context, cube_v_src, cube_f_src,
-        &cube_filter->shader);
+        &transformation->shader);
   }
   return TRUE;
 }
@@ -383,35 +385,25 @@ static gboolean
 gst_gl_transformation_filter_texture (GstGLFilter * filter, guint in_tex,
     guint out_tex)
 {
-  GstGLTransformation *cube_filter = GST_GL_TRANSFORMATION (filter);
-  GLCB cb = NULL;
-  GstGLAPI api;
+  GstGLTransformation *transformation = GST_GL_TRANSFORMATION (filter);
 
-  api = gst_gl_context_get_gl_api (GST_GL_FILTER (cube_filter)->context);
-
-  if (api)
-    cb = _callback_gles2;
+  transformation->in_tex = in_tex;
 
   /* blocking call, use a FBO */
-  gst_gl_context_use_fbo (filter->context,
+  gst_gl_context_use_fbo_v2 (filter->context,
       GST_VIDEO_INFO_WIDTH (&filter->out_info),
       GST_VIDEO_INFO_HEIGHT (&filter->out_info),
-      filter->fbo, filter->depthbuffer, out_tex,
-      cb,
-      GST_VIDEO_INFO_WIDTH (&filter->in_info),
-      GST_VIDEO_INFO_HEIGHT (&filter->in_info),
-      in_tex, cube_filter->fovy, cube_filter->aspect,
-      cube_filter->znear, cube_filter->zfar,
-      GST_GL_DISPLAY_PROJECTION_PERSPECTIVE, (gpointer) cube_filter);
+      filter->fbo, filter->depthbuffer,
+      out_tex, gst_gl_transformation_callback, (gpointer) transformation);
 
   return TRUE;
 }
 
 static void
-_callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
+gst_gl_transformation_callback (gpointer stuff)
 {
   GstGLFilter *filter = GST_GL_FILTER (stuff);
-  GstGLTransformation *cube_filter = GST_GL_TRANSFORMATION (filter);
+  GstGLTransformation *transformation = GST_GL_TRANSFORMATION (filter);
   GstGLFuncs *gl = filter->context->gl_vtable;
 
 /* *INDENT-OFF* */
@@ -439,30 +431,35 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
   GLfloat temp_matrix[16];
 
   graphene_point3d_t translation_vector =
-      GRAPHENE_POINT3D_INIT (cube_filter->xtranslation,
-      cube_filter->ytranslation,
-      cube_filter->ztranslation);
+      GRAPHENE_POINT3D_INIT (transformation->xtranslation,
+      transformation->ytranslation,
+      transformation->ztranslation);
 
   graphene_matrix_t model_matrix;
 
   graphene_matrix_init_translate (&model_matrix, &translation_vector);
   graphene_matrix_rotate (&model_matrix,
-      cube_filter->xrotation * GRAPHENE_PI / 180.f, graphene_vec3_z_axis ());
+      transformation->xrotation * GRAPHENE_PI / 180.f, graphene_vec3_z_axis ());
   graphene_matrix_scale (&model_matrix,
-      cube_filter->xscale, cube_filter->yscale, 1.0f);
+      transformation->xscale, transformation->yscale, 1.0f);
+
+  gst_gl_context_clear_shader (filter->context);
+  gl->BindTexture (GL_TEXTURE_2D, 0);
+  gl->Disable (GL_TEXTURE_2D);
 
   gl->Enable (GL_DEPTH_TEST);
 
-  gl->ClearColor (cube_filter->red, cube_filter->green, cube_filter->blue, 0.0);
+  gl->ClearColor (transformation->red, transformation->green,
+      transformation->blue, 0.0);
   gl->Clear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  gst_gl_shader_use (cube_filter->shader);
+  gst_gl_shader_use (transformation->shader);
 
   attr_position_loc =
-      gst_gl_shader_get_attribute_location (cube_filter->shader, "position");
+      gst_gl_shader_get_attribute_location (transformation->shader, "position");
 
   attr_texture_loc =
-      gst_gl_shader_get_attribute_location (cube_filter->shader,
+      gst_gl_shader_get_attribute_location (transformation->shader,
       "texture_coordinate");
 
   /* Load the vertex position */
@@ -477,11 +474,11 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
   gl->EnableVertexAttribArray (attr_texture_loc);
 
   gl->ActiveTexture (GL_TEXTURE0);
-  gl->BindTexture (GL_TEXTURE_2D, texture);
-  gst_gl_shader_set_uniform_1i (cube_filter->shader, "texture", 0);
+  gl->BindTexture (GL_TEXTURE_2D, transformation->in_tex);
+  gst_gl_shader_set_uniform_1i (transformation->shader, "texture", 0);
 
   graphene_matrix_to_float (&model_matrix, temp_matrix);
-  gst_gl_shader_set_uniform_matrix_4fv (cube_filter->shader, "model_matrix",
+  gst_gl_shader_set_uniform_matrix_4fv (transformation->shader, "model_matrix",
       1, GL_FALSE, temp_matrix);
 
   gl->DrawElements (GL_TRIANGLE_STRIP, 5, GL_UNSIGNED_SHORT, indices);
@@ -490,4 +487,6 @@ _callback_gles2 (gint width, gint height, guint texture, gpointer stuff)
   gl->DisableVertexAttribArray (attr_texture_loc);
 
   gl->Disable (GL_DEPTH_TEST);
+
+  gst_gl_context_clear_shader (filter->context);
 }
