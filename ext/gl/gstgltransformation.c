@@ -222,15 +222,6 @@ gst_gl_transformation_set_property (GObject * object, guint prop_id,
   GstGLTransformation *filter = GST_GL_TRANSFORMATION (object);
 
   switch (prop_id) {
-    case PROP_RED:
-      filter->red = g_value_get_float (value);
-      break;
-    case PROP_GREEN:
-      filter->green = g_value_get_float (value);
-      break;
-    case PROP_BLUE:
-      filter->blue = g_value_get_float (value);
-      break;
     case PROP_FOVY:
       filter->fovy = g_value_get_double (value);
       break;
@@ -274,15 +265,6 @@ gst_gl_transformation_get_property (GObject * object, guint prop_id,
   GstGLTransformation *filter = GST_GL_TRANSFORMATION (object);
 
   switch (prop_id) {
-    case PROP_RED:
-      g_value_set_float (value, filter->red);
-      break;
-    case PROP_GREEN:
-      g_value_set_float (value, filter->green);
-      break;
-    case PROP_BLUE:
-      g_value_set_float (value, filter->blue);
-      break;
     case PROP_FOVY:
       g_value_set_double (value, filter->fovy);
       break;
@@ -458,8 +440,7 @@ gst_gl_transformation_callback (gpointer stuff)
 
   gl->Enable (GL_DEPTH_TEST);
 
-  gl->ClearColor (transformation->red, transformation->green,
-      transformation->blue, 0.0);
+  gl->ClearColor (0.f, 0.f, 0.f, 0.f);
   gl->Clear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   gst_gl_shader_use (transformation->shader);

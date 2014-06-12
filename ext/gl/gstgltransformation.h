@@ -42,11 +42,6 @@ struct _GstGLTransformation
     GstGLShader *shader;
 
     guint in_tex;
-
-    /* background color */
-    gfloat red;
-    gfloat green;
-    gfloat blue;
     
     gfloat xrotation;
     gfloat yrotation;
