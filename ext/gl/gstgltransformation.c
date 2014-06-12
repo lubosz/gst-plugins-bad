@@ -103,7 +103,7 @@ static const gchar *cube_v_src =
     "varying vec2 out_texture_coordinate;                         \n"
     "void main()                                                  \n"
     "{                                                            \n"
-    "   gl_Position = projection * view * model * position;       \n"
+    "   gl_Position = model * position;                           \n"
     "   out_texture_coordinate = texture_coordinate;              \n"
     "}                                                            \n";
 
@@ -451,7 +451,11 @@ gst_gl_transformation_callback (gpointer stuff)
 
   graphene_matrix_init_translate (&model_matrix, &translation_vector);
   graphene_matrix_rotate (&model_matrix,
-      transformation->xrotation * GRAPHENE_PI / 180.f, graphene_vec3_z_axis ());
+      transformation->xrotation, graphene_vec3_x_axis ());
+  graphene_matrix_rotate (&model_matrix,
+      transformation->yrotation, graphene_vec3_y_axis ());
+  graphene_matrix_rotate (&model_matrix,
+      transformation->zrotation, graphene_vec3_z_axis ());
   graphene_matrix_scale (&model_matrix,
       transformation->xscale, transformation->yscale, 1.0f);
 
