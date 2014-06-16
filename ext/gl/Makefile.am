@@ -65,8 +65,6 @@ libgstopengl_la_SOURCES = \
 	gstglimagesink.h \
 	gstglfiltercube.c \
 	gstglfiltercube.h \
-	gstgltransformation.c \
-	gstgltransformation.h \
 	gstgleffects.c \
 	gstgleffects.h \
 	effects/gstgleffectssources.c \
@@ -77,6 +75,12 @@ libgstopengl_la_SOURCES = \
 	gstglcolorscale.c \
 	gstglcolorscale.h \
 	$(OPENGL_SOURCES)
+
+if HAVE_GRAPHENE
+libgstopengl_la_SOURCES += \
+	gstgltransformation.c \
+	gstgltransformation.h
+endif
 
 # check order of CFLAGS and LIBS, shouldn't the order be the other way around
 # (like in AM_CFLAGS)?
