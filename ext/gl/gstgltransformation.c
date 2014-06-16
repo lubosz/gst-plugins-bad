@@ -54,9 +54,6 @@ GST_DEBUG_CATEGORY_STATIC (GST_CAT_DEFAULT);
 enum
 {
   PROP_0,
-  PROP_RED,
-  PROP_GREEN,
-  PROP_BLUE,
   PROP_FOVY,
   PROP_ORTHO,
   PROP_XTRANSLATION,
@@ -131,21 +128,9 @@ gst_gl_transformation_class_init (GstGLTransformationClass * klass)
   GST_GL_FILTER_CLASS (klass)->filter_texture =
       gst_gl_transformation_filter_texture;
 
-  g_object_class_install_property (gobject_class, PROP_RED,
-      g_param_spec_float ("red", "Red", "Background red color",
-          0.0f, 1.0f, 0.0f, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-  g_object_class_install_property (gobject_class, PROP_GREEN,
-      g_param_spec_float ("green", "Green", "Background reen color",
-          0.0f, 1.0f, 0.0f, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
-  g_object_class_install_property (gobject_class, PROP_BLUE,
-      g_param_spec_float ("blue", "Blue", "Background blue color",
-          0.0f, 1.0f, 0.0f, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
-
   g_object_class_install_property (gobject_class, PROP_FOVY,
       g_param_spec_double ("fovy", "Fovy", "Field of view angle in degrees",
-          0.0, 180.0, 90.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          0.0, G_MAXDOUBLE, 90.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_ORTHO,
       g_param_spec_boolean ("ortho", "Orthographic",
@@ -156,44 +141,50 @@ gst_gl_transformation_class_init (GstGLTransformationClass * klass)
   g_object_class_install_property (gobject_class, PROP_XROTATION,
       g_param_spec_float ("xrotation", "X Rotation",
           "Rotates the video around the X-Axis in degrees.",
-          0.0, 360.0, 0.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          -G_MAXDOUBLE, G_MAXDOUBLE, 0.0,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_YROTATION,
       g_param_spec_float ("yrotation", "Y Rotation",
           "Rotates the video around the Y-Axis in degrees.",
-          0.0, 360.0, 0.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          -G_MAXDOUBLE, G_MAXDOUBLE, 0.0,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_ZROTATION,
       g_param_spec_float ("zrotation", "Z Rotation",
           "Rotates the video around the Z-Axis in degrees.",
-          0.0, 360.0, 0.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          -G_MAXDOUBLE, G_MAXDOUBLE, 0.0,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   // Translation
   g_object_class_install_property (gobject_class, PROP_XTRANSLATION,
       g_param_spec_float ("xtranslation", "X Translation",
-          "Translates the video at the X-Axis in percent.",
-          -100.0, 100.0, 0.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          "Translates the video at the X-Axis.",
+          -G_MAXDOUBLE, G_MAXDOUBLE, 0.0,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_YTRANSLATION,
       g_param_spec_float ("ytranslation", "Y Translation",
-          "Translates the video at the Y-Axis in percent.",
-          -100.0, 100.0, 0.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          "Translates the video at the Y-Axis.",
+          -G_MAXDOUBLE, G_MAXDOUBLE, 0.0,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_ZTRANSLATION,
       g_param_spec_float ("ztranslation", "Z Translation",
-          "Translates the video at the Z-Axis in percent.",
-          -100.0, 100.0, 0.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          "Translates the video at the Z-Axis.",
+          -G_MAXDOUBLE, G_MAXDOUBLE, 0.0,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   // Scale
   g_object_class_install_property (gobject_class, PROP_XSCALE,
       g_param_spec_float ("xscale", "X Scale",
           "Scales the video at the X-Axis in times.",
-          0.0, 100.0, 1.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          0.0, G_MAXDOUBLE, 1.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_YSCALE,
       g_param_spec_float ("yscale", "Y Scale",
           "Scales the video at the Y-Axis in times.",
-          0.0, 100.0, 1.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          0.0, G_MAXDOUBLE, 1.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   gst_element_class_set_metadata (element_class, "OpenGL transformation filter",
       "Filter/Effect/Video", "Transform video on the GPU",
