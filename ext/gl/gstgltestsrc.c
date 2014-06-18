@@ -111,6 +111,8 @@ static gboolean gst_gl_test_src_decide_allocation (GstBaseSrc * basesrc,
 
 static void gst_gl_test_src_callback (gpointer stuff);
 
+static gboolean gst_gl_test_src_init_shader (GstGLTestSrc * gltestsrc);
+
 #define GST_TYPE_GL_TEST_SRC_PATTERN (gst_gl_test_src_pattern_get_type ())
 static GType
 gst_gl_test_src_pattern_get_type (void)
@@ -446,6 +448,33 @@ gst_gl_test_src_is_seekable (GstBaseSrc * psrc)
   return TRUE;
 }
 
+const gchar *vertex_src =
+    "attribute vec4 position;                     \n"
+    "uniform mat4 mvp;                            \n"
+    "void main()                                  \n"
+    "{                                            \n"
+    "   gl_Position = mvp * position;             \n"
+    "}                                            \n";
+
+/* fragment source */
+const gchar *fragmemt_src =
+    "void main()                                  \n"
+    "{                                            \n"
+    "  gl_FragColor = vec4(1,0,0,1);              \n"
+    "}                                            \n";
+
+static gboolean
+gst_gl_test_src_init_shader (GstGLTestSrc * gltestsrc)
+{
+
+  if (gst_gl_context_get_gl_api (gltestsrc->context)) {
+    /* blocking call, wait until the opengl thread has compiled the shader */
+    return gst_gl_context_gen_shader (gltestsrc->context, vertex_src,
+        fragmemt_src, &gltestsrc->shader);
+  }
+  return TRUE;
+}
+
 static GstFlowReturn
 gst_gl_test_src_fill (GstPushSrc * psrc, GstBuffer * buffer)
 {
@@ -690,6 +719,8 @@ gst_gl_test_src_decide_allocation (GstBaseSrc * basesrc, GstQuery * query)
     gst_query_set_nth_allocation_pool (query, 0, pool, size, min, max);
   else
     gst_query_add_allocation_pool (query, pool, size, min, max);
+
+  gst_gl_test_src_init_shader (src);
 
   gst_object_unref (pool);
 

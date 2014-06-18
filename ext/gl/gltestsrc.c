@@ -28,6 +28,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <graphene-1.0/graphene.h>
 
 #ifndef M_PI
 #define M_PI  3.14159265358979323846
@@ -191,27 +192,63 @@ gst_gl_test_src_smpte (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
 void
 gst_gl_test_src_snow (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
 {
-#if GST_GL_HAVE_OPENGL
-  if (gst_gl_context_get_gl_api (v->context) & GST_GL_API_OPENGL) {
-    glClearColor (0.0, 0.0, 0.0, 1.0);
-    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glMatrixMode (GL_PROJECTION);
-    glLoadIdentity ();
+  GstGLFuncs *gl = v->context->gl_vtable;
 
-    glMatrixMode (GL_MODELVIEW);
-    glLoadIdentity ();
+/* *INDENT-OFF* */
 
-    /* FIXME snow requires a fragment shader.  Please write. */
-    glColor4f (0.5, 0.5, 0.5, 1.0);
-    glBegin (GL_QUADS);
-    glVertex3f (-1.0 + 2.0 * (0.0), -1.0 + 2.0 * 1, 0);
-    glVertex3f (-1.0 + 2.0 * (1.0), -1.0 + 2.0 * 1, 0);
-    glVertex3f (-1.0 + 2.0 * (1.0), -1.0 + 2.0 * (0.0), 0);
-    glVertex3f (-1.0 + 2.0 * (0.0), -1.0 + 2.0 * (0.0), 0);
-    glEnd ();
+  const GLfloat positions[] = {
+     -1.0,  1.0,  0.0, 1.0,
+      1.0,  1.0,  0.0, 1.0,
+      1.0, -1.0,  0.0, 1.0,
+     -1.0, -1.0,  0.0, 1.0,
+  };
+/* *INDENT-ON* */
+
+  GLushort indices[] = { 0, 1, 2, 3, 0 };
+
+  GLint attr_position_loc = 0;
+
+  GLfloat temp_matrix[16];
+  graphene_matrix_t projection_matrix;
+
+  if (gst_gl_context_get_gl_api (v->context)) {
+
+    graphene_matrix_init_ortho (&projection_matrix, -1, 1, -1, 1, 0.1, 1000.0);
+
+    gst_gl_context_clear_shader (v->context);
+    gl->BindTexture (GL_TEXTURE_2D, 0);
+    gl->Disable (GL_TEXTURE_2D);
+
+    gl->ClearColor (0.f, 0.f, 0.f, 0.f);
+    gl->Clear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    gst_gl_shader_use (v->shader);
+
+    attr_position_loc =
+        gst_gl_shader_get_attribute_location (v->shader, "position");
+
+    // this returns -1, should be 1
+    // if the attribute is actually in the shader, of course
+    //attr_texture_loc =
+    //    gst_gl_shader_get_attribute_location (v->shader, "uv");
+
+    /* Load the vertex position */
+    gl->VertexAttribPointer (attr_position_loc, 4, GL_FLOAT,
+        GL_FALSE, 0, positions);
+
+    gl->EnableVertexAttribArray (attr_position_loc);
+
+    graphene_matrix_to_float (&projection_matrix, temp_matrix);
+    gst_gl_shader_set_uniform_matrix_4fv (v->shader, "mvp",
+        1, GL_FALSE, temp_matrix);
+
+    gl->DrawElements (GL_TRIANGLE_STRIP, 5, GL_UNSIGNED_SHORT, indices);
+
+    gl->DisableVertexAttribArray (attr_position_loc);
+
+    gst_gl_context_clear_shader (v->context);
   }
-#endif
 }
 
 static void

@@ -98,6 +98,8 @@ struct _GstGLTestSrc {
     GLuint fbo;
     GLuint depthbuffer;
 
+    GstGLShader *shader;
+
     GstBuffer* buffer;
     GstBufferPool *pool;
 
