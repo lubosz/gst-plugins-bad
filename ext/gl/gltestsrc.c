@@ -203,18 +203,26 @@ gst_gl_test_src_snow (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
       1.0, -1.0,  0.0, 1.0,
      -1.0, -1.0,  0.0, 1.0,
   };
+
+  const GLfloat uvs[] = {
+     0.0,  1.0,
+     1.0,  1.0,
+     1.0,  0.0,
+     0.0,  0.0,
+  };
 /* *INDENT-ON* */
 
   GLushort indices[] = { 0, 1, 2, 3, 0 };
 
   GLint attr_position_loc = 0;
+  GLint attr_uv_loc = 0;
 
   GLfloat temp_matrix[16];
   graphene_matrix_t projection_matrix;
 
   if (gst_gl_context_get_gl_api (v->context)) {
 
-    graphene_matrix_init_ortho (&projection_matrix, -1, 1, -1, 1, 0.1, 1000.0);
+    graphene_matrix_init_ortho (&projection_matrix, -1, 1, -1, 1, -1, 1);
 
     gst_gl_context_clear_shader (v->context);
     gl->BindTexture (GL_TEXTURE_2D, 0);
@@ -228,24 +236,28 @@ gst_gl_test_src_snow (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
     attr_position_loc =
         gst_gl_shader_get_attribute_location (v->shader, "position");
 
-    // this returns -1, should be 1
-    // if the attribute is actually in the shader, of course
-    //attr_texture_loc =
-    //    gst_gl_shader_get_attribute_location (v->shader, "uv");
+    attr_uv_loc = gst_gl_shader_get_attribute_location (v->shader, "uv");
 
     /* Load the vertex position */
     gl->VertexAttribPointer (attr_position_loc, 4, GL_FLOAT,
         GL_FALSE, 0, positions);
+    /* Load the texture coordinate */
+    gl->VertexAttribPointer (attr_uv_loc, 2, GL_FLOAT, GL_FALSE, 0, uvs);
 
     gl->EnableVertexAttribArray (attr_position_loc);
+    gl->EnableVertexAttribArray (attr_uv_loc);
 
     graphene_matrix_to_float (&projection_matrix, temp_matrix);
     gst_gl_shader_set_uniform_matrix_4fv (v->shader, "mvp",
         1, GL_FALSE, temp_matrix);
 
+    gst_gl_shader_set_uniform_1f (v->shader, "time",
+        (gfloat) v->running_time / GST_SECOND);
+
     gl->DrawElements (GL_TRIANGLE_STRIP, 5, GL_UNSIGNED_SHORT, indices);
 
     gl->DisableVertexAttribArray (attr_position_loc);
+    gl->DisableVertexAttribArray (attr_uv_loc);
 
     gst_gl_context_clear_shader (v->context);
   }

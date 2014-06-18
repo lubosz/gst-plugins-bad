@@ -450,17 +450,28 @@ gst_gl_test_src_is_seekable (GstBaseSrc * psrc)
 
 const gchar *vertex_src =
     "attribute vec4 position;                     \n"
+    "attribute vec2 uv;                           \n"
     "uniform mat4 mvp;                            \n"
+    "varying vec2 out_uv;                         \n"
     "void main()                                  \n"
     "{                                            \n"
     "   gl_Position = mvp * position;             \n"
+    "   out_uv = uv;                              \n"
     "}                                            \n";
 
 /* fragment source */
 const gchar *fragmemt_src =
+    "#ifdef GL_ES                                 \n"
+    "  precision mediump float;                   \n"
+    "#endif                                       \n"
+    "float rand(vec2 co){\n"
+    "    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);\n"
+    "}\n"
+    "uniform float time;\n"
+    "varying vec2 out_uv;                         \n"
     "void main()                                  \n"
     "{                                            \n"
-    "  gl_FragColor = vec4(1,0,0,1);              \n"
+    "  gl_FragColor = rand(time * out_uv) * vec4(1,1,1,1);              \n"
     "}                                            \n";
 
 static gboolean
