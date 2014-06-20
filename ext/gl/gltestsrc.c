@@ -85,8 +85,8 @@ void
 gst_gl_test_src_smpte (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
 {
 #if GST_GL_HAVE_OPENGL
+/*
   int i;
-
   if (gst_gl_context_get_gl_api (v->context) & GST_GL_API_OPENGL) {
 
     glClearColor (0.0, 0.0, 0.0, 1.0);
@@ -186,6 +186,7 @@ gst_gl_test_src_smpte (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
     glVertex3f (-1.0 + 2.0 * (0.75), -1.0 + 2.0 * (3.0 / 4.0), 0);
     glEnd ();
   }
+  */
 #endif
 }
 
@@ -226,7 +227,7 @@ gst_gl_test_src_snow (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
 
     gst_gl_context_clear_shader (v->context);
     gl->BindTexture (GL_TEXTURE_2D, 0);
-    gl->Disable (GL_TEXTURE_2D);
+    //gl->Disable (GL_TEXTURE_2D);
 
     gl->ClearColor (0.f, 0.f, 0.f, 0.f);
     gl->Clear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -242,6 +243,7 @@ gst_gl_test_src_snow (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
     gl->VertexAttribPointer (attr_position_loc, 4, GL_FLOAT,
         GL_FALSE, 0, positions);
     /* Load the texture coordinate */
+    //GST_ERROR("zup");
     gl->VertexAttribPointer (attr_uv_loc, 2, GL_FLOAT, GL_FALSE, 0, uvs);
 
     gl->EnableVertexAttribArray (attr_position_loc);

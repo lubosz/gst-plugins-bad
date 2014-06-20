@@ -309,7 +309,7 @@ gst_gl_context_egl_create_context (GstGLContext * context,
     }
 
     GST_INFO ("Using OpenGL");
-    egl->gl_api = GST_GL_API_OPENGL;
+    egl->gl_api = GST_GL_API_OPENGL3;
   } else if (gl_api & GST_GL_API_GLES2) {
   try_gles2:
     if (!eglBindAPI (EGL_OPENGL_ES_API)) {
@@ -338,6 +338,12 @@ gst_gl_context_egl_create_context (GstGLContext * context,
   context_attrib[i++] = EGL_CONTEXT_FLAGS_KHR;
   context_attrib[i++] = EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR;
 #endif
+
+  context_attrib[i++] = EGL_CONTEXT_MAJOR_VERSION_KHR;
+  context_attrib[i++] = 3;
+  context_attrib[i++] = EGL_CONTEXT_MINOR_VERSION_KHR;
+  context_attrib[i++] = 3;
+
   context_attrib[i++] = EGL_NONE;
 
   egl->egl_context =

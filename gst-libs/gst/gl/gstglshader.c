@@ -29,9 +29,11 @@
 #if GST_GL_HAVE_GLES2
 /* *INDENT-OFF* */
 static const gchar *simple_vertex_shader_str_gles2 =
-      "attribute vec4 a_position;   \n"
-      "attribute vec2 a_texCoord;   \n"
-      "varying vec2 v_texCoord;     \n"
+      //"#version 300 es\n"
+      "#version 330\n"
+      "in vec4 a_position;   \n"
+      "in vec2 a_texCoord;   \n"
+      "out vec2 v_texCoord;     \n"
       "void main()                  \n"
       "{                            \n"
       "   gl_Position = a_position; \n"
@@ -39,12 +41,15 @@ static const gchar *simple_vertex_shader_str_gles2 =
       "}                            \n";
 
 static const gchar *simple_fragment_shader_str_gles2 =
-      "precision mediump float;                            \n"
-      "varying vec2 v_texCoord;                            \n"
+      //"#version 300 es\n"
+      "#version 330\n"
+      //"precision mediump float;                            \n"
+      "in vec2 v_texCoord;                            \n"
+      "out vec4 fragColor;\n"
       "uniform sampler2D tex;                              \n"
       "void main()                                         \n"
       "{                                                   \n"
-      "  gl_FragColor = texture2D( tex, v_texCoord );      \n"
+      "  fragColor = texture2D( tex, v_texCoord );      \n"
       "}                                                   \n";
 /* *INDENT-ON* */
 #endif
@@ -60,7 +65,7 @@ static const gchar *simple_fragment_shader_str_gles2 =
   (G_TYPE_INSTANCE_GET_PRIVATE((o), GST_GL_TYPE_SHADER, GstGLShaderPrivate))
 
 #define USING_OPENGL(context) (gst_gl_context_check_gl_version (context, GST_GL_API_OPENGL, 1, 0))
-#define USING_OPENGL3(context) (gst_gl_context_check_gl_version (context, GST_GL_API_OPENGL3, 3, 1))
+#define USING_OPENGL3(context) (gst_gl_context_check_gl_version (context, GST_GL_API_OPENGL3, 3, 3))
 #define USING_GLES(context) (gst_gl_context_check_gl_version (context, GST_GL_API_GLES, 1, 0))
 #define USING_GLES2(context) (gst_gl_context_check_gl_version (context, GST_GL_API_GLES2, 2, 0))
 #define USING_GLES3(context) (gst_gl_context_check_gl_version (context, GST_GL_API_GLES2, 3, 0))
