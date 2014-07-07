@@ -198,7 +198,7 @@ gst_gl_transformation_init (GstGLTransformation * filter)
 {
   filter->shader = NULL;
   filter->fovy = 90;
-  filter->aspect = 0;
+  filter->aspect = 1.0;
   filter->znear = 0.1;
   filter->zfar = 100;
 
