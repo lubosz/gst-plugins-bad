@@ -62,7 +62,8 @@ enum
   PROP_ROTATION_Y,
   PROP_ROTATION_Z,
   PROP_SCALE_X,
-  PROP_SCALE_Y
+  PROP_SCALE_Y,
+  PROP_MVP
 };
 
 #define DEBUG_INIT \
@@ -188,6 +189,13 @@ gst_gl_transformation_class_init (GstGLTransformationClass * klass)
           "Scale multiplierer for the Y-Axis.",
           0.0, G_MAXFLOAT, 1.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
+  /* MVP */
+  g_object_class_install_property (gobject_class, PROP_MVP,
+      g_param_spec_object ("mvp-matrix",
+          "Modelview Projection Matrix",
+          "The final Graphene 4x4 Matrix for transformation",
+          GST_GL_TYPE_CONTEXT, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
   gst_element_class_set_metadata (element_class, "OpenGL transformation filter",
       "Filter/Effect/Video", "Transform video on the GPU",
       "Lubosz Sarnecki <lubosz@gmail.com>");
@@ -295,6 +303,10 @@ gst_gl_transformation_set_property (GObject * object, guint prop_id,
     case PROP_SCALE_Y:
       filter->yscale = g_value_get_float (value);
       break;
+    case PROP_MVP:
+      filter->mvp_matrix = *((graphene_matrix_t *) g_value_get_object (value));
+      return;
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -338,6 +350,9 @@ gst_gl_transformation_get_property (GObject * object, guint prop_id,
       break;
     case PROP_SCALE_Y:
       g_value_set_float (value, filter->yscale);
+      break;
+    case PROP_MVP:
+      g_value_set_object (value, (gpointer) & filter->mvp_matrix);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
