@@ -53,7 +53,7 @@ GST_DEBUG_CATEGORY_STATIC (GST_CAT_DEFAULT);
 enum
 {
   PROP_0,
-  PROP_FOVY,
+  PROP_FOV,
   PROP_ORTHO,
   PROP_TRANSLATION_X,
   PROP_TRANSLATION_Y,
@@ -130,8 +130,8 @@ gst_gl_transformation_class_init (GstGLTransformationClass * klass)
   GST_GL_FILTER_CLASS (klass)->filter_texture =
       gst_gl_transformation_filter_texture;
 
-  g_object_class_install_property (gobject_class, PROP_FOVY,
-      g_param_spec_float ("fovy", "Fovy", "Field of view angle in degrees",
+  g_object_class_install_property (gobject_class, PROP_FOV,
+      g_param_spec_float ("fov", "Fov", "Field of view angle in degrees",
           0.0, G_MAXFLOAT, 90.0, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_property (gobject_class, PROP_ORTHO,
@@ -197,7 +197,7 @@ static void
 gst_gl_transformation_init (GstGLTransformation * filter)
 {
   filter->shader = NULL;
-  filter->fovy = 90;
+  filter->fov = 90;
   filter->aspect = 1.0;
   filter->znear = 0.1;
   filter->zfar = 100;
@@ -247,7 +247,7 @@ gst_gl_transformation_build_mvp (GstGLTransformation * transformation)
         -1, 1, transformation->znear, transformation->zfar);
   } else {
     graphene_matrix_init_perspective (&projection_matrix,
-        transformation->fovy,
+        transformation->fov,
         transformation->aspect, transformation->znear, transformation->zfar);
   }
 
@@ -265,8 +265,8 @@ gst_gl_transformation_set_property (GObject * object, guint prop_id,
   GstGLTransformation *filter = GST_GL_TRANSFORMATION (object);
 
   switch (prop_id) {
-    case PROP_FOVY:
-      filter->fovy = g_value_get_float (value);
+    case PROP_FOV:
+      filter->fov = g_value_get_float (value);
       break;
     case PROP_ORTHO:
       filter->ortho = g_value_get_boolean (value);
@@ -309,8 +309,8 @@ gst_gl_transformation_get_property (GObject * object, guint prop_id,
   GstGLTransformation *filter = GST_GL_TRANSFORMATION (object);
 
   switch (prop_id) {
-    case PROP_FOVY:
-      g_value_set_float (value, filter->fovy);
+    case PROP_FOV:
+      g_value_set_float (value, filter->fov);
       break;
     case PROP_ORTHO:
       g_value_set_boolean (value, filter->ortho);
