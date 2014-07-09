@@ -239,14 +239,16 @@ gst_gl_transformation_build_mvp (GstGLTransformation * transformation)
   graphene_vec3_init (&center, 0.f, 0.f, 0.f);
   graphene_vec3_init (&up, 0.f, 1.f, 0.f);
 
-  graphene_matrix_init_rotate (&model_matrix,
+  graphene_matrix_init_scale (&model_matrix,
+      transformation->xscale, transformation->yscale, 1.0f);
+
+  graphene_matrix_rotate (&model_matrix,
       transformation->xrotation, graphene_vec3_x_axis ());
   graphene_matrix_rotate (&model_matrix,
       transformation->yrotation, graphene_vec3_y_axis ());
   graphene_matrix_rotate (&model_matrix,
       transformation->zrotation, graphene_vec3_z_axis ());
-  graphene_matrix_scale (&model_matrix,
-      transformation->xscale, transformation->yscale, 1.0f);
+
   graphene_matrix_translate (&model_matrix, &translation_vector);
 
   if (transformation->ortho) {
