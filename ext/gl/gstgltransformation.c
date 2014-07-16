@@ -46,6 +46,7 @@
 
 #include <gst/gl/gstglapi.h>
 #include "gstgltransformation.h"
+#include <graphene-1.0/graphene-gobject.h>
 
 #define GST_CAT_DEFAULT gst_gl_transformation_debug
 GST_DEBUG_CATEGORY_STATIC (GST_CAT_DEFAULT);
@@ -191,10 +192,10 @@ gst_gl_transformation_class_init (GstGLTransformationClass * klass)
 
   /* MVP */
   g_object_class_install_property (gobject_class, PROP_MVP,
-      g_param_spec_object ("mvp-matrix",
+      g_param_spec_boxed ("mvp-matrix",
           "Modelview Projection Matrix",
           "The final Graphene 4x4 Matrix for transformation",
-          GST_GL_TYPE_CONTEXT, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+          GRAPHENE_TYPE_MATRIX, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
   gst_element_class_set_metadata (element_class, "OpenGL transformation filter",
       "Filter/Effect/Video", "Transform video on the GPU",
@@ -306,7 +307,7 @@ gst_gl_transformation_set_property (GObject * object, guint prop_id,
       filter->yscale = g_value_get_float (value);
       break;
     case PROP_MVP:
-      filter->mvp_matrix = *((graphene_matrix_t *) g_value_get_object (value));
+      filter->mvp_matrix = *((graphene_matrix_t *) g_value_get_boxed (value));
       return;
       break;
     default:
@@ -354,7 +355,7 @@ gst_gl_transformation_get_property (GObject * object, guint prop_id,
       g_value_set_float (value, filter->yscale);
       break;
     case PROP_MVP:
-      g_value_set_object (value, (gpointer) & filter->mvp_matrix);
+      g_value_set_boxed (value, (gconstpointer) & filter->mvp_matrix);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
