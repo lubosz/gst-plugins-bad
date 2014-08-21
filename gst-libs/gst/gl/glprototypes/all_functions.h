@@ -26,4 +26,3 @@
 #include "gles.h"
 #include "opengl.h"
 #include "shaders.h"
-#include "debug.h"
