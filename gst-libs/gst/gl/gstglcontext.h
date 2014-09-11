@@ -106,6 +106,7 @@ struct _GstGLContextClass {
   void          (*destroy_context)    (GstGLContext *context);
   void          (*swap_buffers)       (GstGLContext *context);
   gboolean      (*check_feature)      (GstGLContext *context, const gchar *feature);
+  void          (*set_event_handling) (GstGLContext *context, gboolean handle_events);
 
   /*< private >*/
   gpointer _reserved[GST_PADDING];
@@ -140,6 +141,8 @@ GstGLWindow * gst_gl_context_get_window (GstGLContext *context);
 void          gst_gl_context_get_gl_version (GstGLContext *context, gint *maj, gint *min);
 gboolean      gst_gl_context_check_gl_version (GstGLContext * context, GstGLAPI api, gint maj, gint min);
 gboolean      gst_gl_context_check_feature (GstGLContext *context, const gchar *feature);
+
+void          gst_gl_context_set_event_handling (GstGLContext * context, gboolean handle_events);
 
 /* FIXME: remove */
 void gst_gl_context_thread_add (GstGLContext * context,

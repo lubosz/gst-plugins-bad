@@ -211,8 +211,7 @@ gst_gl_window_x11_create_window (GstGLWindowX11 * window_x11)
       window_x11->visual_info->bits_per_rgb);
 
   win_attr.event_mask =
-      StructureNotifyMask | ExposureMask | VisibilityChangeMask | KeyPressMask |
-      KeyReleaseMask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask;
+      StructureNotifyMask | ExposureMask | VisibilityChangeMask;
   win_attr.do_not_propagate_mask = NoEventMask;
 
   win_attr.background_pixmap = None;
@@ -495,6 +494,22 @@ event_type_to_string (guint type)
       return "MotionNotify";
     default:
       return "unknown";
+  }
+}
+
+void
+gst_gl_window_x11_set_event_handling (GstGLWindowX11 * window_x11,
+    gboolean handle_events)
+{
+  g_return_if_fail (window_x11 != NULL);
+
+  if (handle_events) {
+    XSelectInput (window_x11->device, window_x11->internal_win_id,
+        StructureNotifyMask | ExposureMask | VisibilityChangeMask |
+        PointerMotionMask | KeyPressMask | KeyReleaseMask);
+  } else {
+    XSelectInput (window_x11->device, window_x11->internal_win_id,
+        StructureNotifyMask | ExposureMask | VisibilityChangeMask);
   }
 }
 

@@ -151,6 +151,10 @@ static void gst_glimage_sink_set_window_handle (GstVideoOverlay * overlay,
     guintptr id);
 static void gst_glimage_sink_expose (GstVideoOverlay * overlay);
 
+static void
+gst_glimage_sink_set_event_handling (GstVideoOverlay * overlay,
+    gboolean handle_events);
+
 static GstStaticPadTemplate gst_glimage_sink_template =
     GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
@@ -174,7 +178,8 @@ enum
   PROP_FORCE_ASPECT_RATIO,
   PROP_PIXEL_ASPECT_RATIO,
   PROP_CONTEXT,
-  PROP_OTHER_CONTEXT
+  PROP_OTHER_CONTEXT,
+  PROP_HANDLE_EVENTS,
 };
 
 enum
@@ -289,6 +294,11 @@ gst_glimage_sink_class_init (GstGLImageSinkClass * klass)
           "Get OpenGL context",
           GST_GL_TYPE_CONTEXT, G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 
+  g_object_class_install_property (gobject_class, PROP_HANDLE_EVENTS,
+      g_param_spec_boolean ("handle-events", "Handle XEvents",
+          "When enabled, XEvents will be selected and handled", TRUE,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
   gst_element_class_set_metadata (element_class, "OpenGL video sink",
       "Sink/Video", "A videosink based on OpenGL",
       "Julien Isorce <julien.isorce@gmail.com>");
@@ -363,6 +373,9 @@ gst_glimage_sink_init (GstGLImageSink * glimage_sink)
   glimage_sink->redisplay_texture = 0;
 
   g_mutex_init (&glimage_sink->drawing_lock);
+  g_mutex_init (&glimage_sink->flow_lock);
+
+  gst_glimage_sink_set_event_handling (GST_VIDEO_OVERLAY (glimage_sink), TRUE);
 }
 
 static void
@@ -400,6 +413,10 @@ gst_glimage_sink_set_property (GObject * object, guint prop_id,
       glimage_sink->other_context = g_value_dup_object (value);
       break;
     }
+    case PROP_HANDLE_EVENTS:
+      gst_glimage_sink_set_event_handling (GST_VIDEO_OVERLAY (glimage_sink),
+          g_value_get_boolean (value));
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -416,6 +433,8 @@ gst_glimage_sink_finalize (GObject * object)
   glimage_sink = GST_GLIMAGE_SINK (object);
 
   g_mutex_clear (&glimage_sink->drawing_lock);
+
+  g_mutex_clear (&glimage_sink->flow_lock);
 
   if (glimage_sink->other_context) {
     gst_object_unref (glimage_sink->other_context);
@@ -453,6 +472,9 @@ gst_glimage_sink_get_property (GObject * object, guint prop_id,
       break;
     case PROP_OTHER_CONTEXT:
       g_value_set_object (value, glimage_sink->other_context);
+      break;
+    case PROP_HANDLE_EVENTS:
+      g_value_set_boolean (value, glimage_sink->handle_events);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -924,6 +946,7 @@ static void
 gst_glimage_sink_video_overlay_init (GstVideoOverlayInterface * iface)
 {
   iface->set_window_handle = gst_glimage_sink_set_window_handle;
+  iface->handle_events = gst_glimage_sink_set_event_handling;
   iface->expose = gst_glimage_sink_expose;
 }
 
@@ -961,6 +984,23 @@ gst_glimage_sink_expose (GstVideoOverlay * overlay)
 
     gst_glimage_sink_redisplay (glimage_sink);
   }
+}
+
+static void
+gst_glimage_sink_set_event_handling (GstVideoOverlay * overlay,
+    gboolean handle_events)
+{
+  GstGLImageSink *glimage_sink = GST_GLIMAGE_SINK (overlay);
+
+  g_mutex_lock (&glimage_sink->flow_lock);
+  glimage_sink->handle_events = handle_events;
+
+  _ensure_gl_setup (glimage_sink);
+
+  if (G_LIKELY (glimage_sink->context))
+    gst_gl_context_set_event_handling (glimage_sink->context, handle_events);
+
+  g_mutex_unlock (&glimage_sink->flow_lock);
 }
 
 static gboolean

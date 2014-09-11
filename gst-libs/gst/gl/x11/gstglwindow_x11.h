@@ -102,6 +102,8 @@ GstGLWindowX11 * gst_gl_window_x11_new (GstGLDisplay * display);
 
 void gst_gl_window_x11_trap_x_errors (void);
 gint gst_gl_window_x11_untrap_x_errors (void);
+void gst_gl_window_x11_set_event_handling (GstGLWindowX11 * window_x11,
+                                           gboolean handle_events);
 
 gboolean gst_gl_window_x11_create_window (GstGLWindowX11 * window_x11);
 

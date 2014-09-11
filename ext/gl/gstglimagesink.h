@@ -65,6 +65,9 @@ struct _GstGLImageSink
     GstGLDisplay *display;
     GstGLContext *context;
     GstGLContext *other_context;
+    gboolean handle_events;
+
+    GMutex flow_lock;
 
     GstGLUpload *upload;
     guint      next_tex;

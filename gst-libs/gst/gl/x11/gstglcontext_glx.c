@@ -60,6 +60,9 @@ static GstGLPlatform gst_gl_context_glx_get_gl_platform (GstGLContext *
 static gpointer gst_gl_context_glx_get_proc_address (GstGLContext * context,
     const gchar * name);
 
+static void gst_gl_context_glx_set_event_handling (GstGLContext * context,
+    gboolean handle_events);
+
 struct _GstGLContextGLXPrivate
 {
   int glx_major;
@@ -96,6 +99,9 @@ gst_gl_context_glx_class_init (GstGLContextGLXClass * klass)
       GST_DEBUG_FUNCPTR (gst_gl_context_glx_get_gl_platform);
   context_class->get_proc_address =
       GST_DEBUG_FUNCPTR (gst_gl_context_glx_get_proc_address);
+
+  context_class->set_event_handling =
+      GST_DEBUG_FUNCPTR (gst_gl_context_glx_set_event_handling);
 }
 
 static void
@@ -363,6 +369,16 @@ failure:
     gst_object_unref (window);
 
   return FALSE;
+}
+
+static void
+gst_gl_context_glx_set_event_handling (GstGLContext * context,
+    gboolean handle_events)
+{
+  GstGLWindow *window;
+  window = gst_gl_context_get_window (context);
+  gst_gl_window_x11_set_event_handling ((GstGLWindowX11 *) window,
+      handle_events);
 }
 
 static void

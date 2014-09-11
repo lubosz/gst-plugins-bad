@@ -1322,6 +1322,28 @@ gst_gl_context_check_gl_version (GstGLContext * context, GstGLAPI api,
 }
 
 /**
+ * gst_gl_context_set_event_handling:
+ * @context: a #GstGLContext
+ * @handle_events: whether to handle events
+ *
+ * Tell an @context that it should handle events from the window system. These
+ * events are forwarded upstream as navigation events. In some window system,
+ * events are not propagated in the window hierarchy if a client is listening
+ * for them. This method allows you to disable events handling completely
+ * from the @context.
+ */
+void
+gst_gl_context_set_event_handling (GstGLContext * context,
+    gboolean handle_events)
+{
+  GstGLContextClass *context_class;
+  g_return_if_fail (GST_GL_IS_CONTEXT (context));
+  context_class = GST_GL_CONTEXT_GET_CLASS (context);
+  g_return_if_fail (context_class->set_event_handling != NULL);
+  context_class->set_event_handling (context, handle_events);
+}
+
+/**
  * gst_gl_context_check_feature:
  * @context: a #GstGLContext
  * @feature: a platform specific feature
