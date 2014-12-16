@@ -194,14 +194,23 @@ static const GLfloat positions[] = {
       1.0,  1.0,  0.0, 1.0,
       1.0, -1.0,  0.0, 1.0,
      -1.0, -1.0,  0.0, 1.0,
-  };
+};
+
+static const GLushort indices[] = { 0, 1, 2, 3, 0 };
+
 static const GLfloat identitiy_matrix[] = {
       1.0,  0.0,  0.0, 0.0,
       0.0,  1.0,  0.0, 0.0,
       0.0,  0.0,  1.0, 0.0,
       0.0,  0.0,  0.0, 1.0,
-  };
+};
 
+static const GLfloat uvs[] = {
+     0.0,  1.0,
+     1.0,  1.0,
+     1.0,  0.0,
+     0.0,  0.0,
+};
 /* *INDENT-ON* */
 
 void
@@ -210,19 +219,14 @@ gst_gl_test_src_shader (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
 
   GstGLFuncs *gl = v->context->gl_vtable;
 
-/* *INDENT-OFF* */
-  const GLfloat uvs[] = {
-     0.0,  1.0,
-     1.0,  1.0,
-     1.0,  0.0,
-     0.0,  0.0,
-  };
-/* *INDENT-ON* */
-
-  GLushort indices[] = { 0, 1, 2, 3, 0 };
-
   GLint attr_position_loc = -1;
   GLint attr_uv_loc = -1;
+
+  GLuint vertex_array;
+
+  GLuint position_buffer;
+  GLuint uv_buffer;
+  GLuint index_buffer;
 
   if (gst_gl_context_get_gl_api (v->context)) {
 
@@ -233,17 +237,31 @@ gst_gl_test_src_shader (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
 
     attr_position_loc =
         gst_gl_shader_get_attribute_location (v->shader, "position");
-
     attr_uv_loc = gst_gl_shader_get_attribute_location (v->shader, "uv");
 
-    /* Load the vertex position */
-    gl->VertexAttribPointer (attr_position_loc, 4, GL_FLOAT,
-        GL_FALSE, 0, positions);
-    /* Load the texture coordinate */
-    gl->VertexAttribPointer (attr_uv_loc, 2, GL_FLOAT, GL_FALSE, 0, uvs);
+    glGenVertexArrays (1, &vertex_array);
+    glBindVertexArray (vertex_array);
 
-    gl->EnableVertexAttribArray (attr_position_loc);
-    gl->EnableVertexAttribArray (attr_uv_loc);
+    // vertex
+    glGenBuffers (1, &position_buffer);
+    glBindBuffer (GL_ARRAY_BUFFER, position_buffer);
+    glVertexAttribPointer (attr_position_loc, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray (attr_position_loc);
+    glBufferData (GL_ARRAY_BUFFER, 16 * sizeof (GLfloat), positions,
+        GL_STATIC_DRAW);
+
+    // uv
+    glGenBuffers (1, &uv_buffer);
+    glBindBuffer (GL_ARRAY_BUFFER, uv_buffer);
+    glVertexAttribPointer (attr_uv_loc, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glEnableVertexAttribArray (attr_uv_loc);
+    glBufferData (GL_ARRAY_BUFFER, 8 * sizeof (GLfloat), uvs, GL_STATIC_DRAW);
+
+    // index
+    glGenBuffers (1, &index_buffer);
+    glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+    glBufferData (GL_ELEMENT_ARRAY_BUFFER, 5 * sizeof (GLuint), indices,
+        GL_STATIC_DRAW);
 
     gst_gl_shader_set_uniform_matrix_4fv (v->shader, "mvp",
         1, GL_FALSE, identitiy_matrix);
@@ -254,7 +272,7 @@ gst_gl_test_src_shader (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
     gst_gl_shader_set_uniform_1f (v->shader, "aspect_ratio",
         (gfloat) w / (gfloat) h);
 
-    gl->DrawElements (GL_TRIANGLE_STRIP, 5, GL_UNSIGNED_SHORT, indices);
+    gl->DrawElements (GL_TRIANGLE_STRIP, 5, GL_UNSIGNED_SHORT, 0);
 
     gl->DisableVertexAttribArray (attr_position_loc);
     gl->DisableVertexAttribArray (attr_uv_loc);

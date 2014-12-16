@@ -49,7 +49,7 @@
 #include <gst/gst-i18n-plugin.h>
 
 #define USE_PEER_BUFFERALLOC
-#define SUPPORTED_GL_APIS GST_GL_API_OPENGL
+#define SUPPORTED_GL_APIS GST_GL_API_OPENGL | GST_GL_API_OPENGL3
 
 GST_DEBUG_CATEGORY_STATIC (gl_test_src_debug);
 #define GST_CAT_DEFAULT gl_test_src_debug
@@ -245,12 +245,14 @@ const gchar *snow_fragment_src = "uniform float time; \
       gl_FragColor = rand(time * out_uv) * vec4(1); \
     }";
 
-const gchar *mandelbrot_vertex_src = "attribute vec4 position; \
-    attribute vec2 uv; \
+
+const gchar *mandelbrot_vertex_src = "\
+    #version 130 \n\
+    in vec4 position; \
+    in vec2 uv; \
     uniform mat4 mvp; \
     uniform float aspect_ratio; \
-    varying vec2 fractal_position; \
-    \
+    out vec2 fractal_position; \
     void main() \
     { \
        gl_Position = mvp * position; \
@@ -258,8 +260,11 @@ const gchar *mandelbrot_vertex_src = "attribute vec4 position; \
        fractal_position *= 2.5; \
     }";
 
-const gchar *mandelbrot_fragment_src = "uniform float time; \
-    varying vec2 fractal_position; \
+const gchar *mandelbrot_fragment_src = "\
+    #version 130 \n\
+    uniform float time; \
+    in vec2 fractal_position; \
+    out vec4 frag_color; \
     \
     const vec4 K = vec4(1.0, 0.66, 0.33, 3.0); \
     \
@@ -292,7 +297,7 @@ const gchar *mandelbrot_fragment_src = "uniform float time; \
     } \
     \
     void main() { \
-      gl_FragColor = iterate_pixel(fractal_position); \
+      frag_color = iterate_pixel(fractal_position); \
     }";
 
 
@@ -587,6 +592,17 @@ gst_gl_test_src_is_seekable (GstBaseSrc * psrc)
   return TRUE;
 }
 
+static void
+_compile_shader (GstGLContext * context, GstGLTestSrc * gltestsrc)
+{
+  const gchar *attrib_names[2] = { "position", "uv" };
+  GLint attrib_locs[2] = { 0 };
+
+  gst_gl_shader_compile_all_with_attribs_and_check (gltestsrc->shader,
+      gltestsrc->vertex_src, gltestsrc->fragment_src, 2, attrib_names,
+      attrib_locs);
+}
+
 static gboolean
 gst_gl_test_src_init_shader (GstGLTestSrc * gltestsrc)
 {
@@ -594,8 +610,9 @@ gst_gl_test_src_init_shader (GstGLTestSrc * gltestsrc)
     /* blocking call, wait until the opengl thread has compiled the shader */
     if (gltestsrc->vertex_src == NULL)
       return FALSE;
-    return gst_gl_context_gen_shader (gltestsrc->context, gltestsrc->vertex_src,
-        gltestsrc->fragment_src, &gltestsrc->shader);
+    gltestsrc->shader = gst_gl_shader_new (gltestsrc->context);
+    gst_gl_context_thread_add (gltestsrc->context,
+        (GstGLContextThreadFunc) _compile_shader, gltestsrc);
   }
   return TRUE;
 }
