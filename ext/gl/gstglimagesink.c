@@ -855,6 +855,10 @@ gst_glimage_sink_get_caps (GstBaseSink * bsink, GstCaps * filter)
     result = tmp;
   }
 
+  tmp = gst_caps_from_string
+      ("video/x-raw(memory:SystemMemory, meta:GstVideoOverlayComposition)");
+  result = gst_caps_merge (result, tmp);
+
   GST_DEBUG_OBJECT (bsink, "returning caps: %" GST_PTR_FORMAT, result);
 
   return result;
@@ -1235,6 +1239,9 @@ gst_glimage_sink_propose_allocation (GstBaseSink * bsink, GstQuery * query)
 
   if (glimage_sink->context->gl_vtable->FenceSync)
     gst_query_add_allocation_meta (query, GST_GL_SYNC_META_API_TYPE, 0);
+
+  gst_query_add_allocation_meta (query,
+      GST_VIDEO_OVERLAY_COMPOSITION_META_API_TYPE, NULL);
 
   return TRUE;
 
