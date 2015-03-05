@@ -1004,6 +1004,12 @@ gst_glimage_sink_prepare (GstBaseSink * bsink, GstBuffer * buf)
   GstVideoFrame gl_frame;
   GstVideoInfo gl_info;
 
+  gpointer raw_overlay_data;
+
+  GstVideoOverlayCompositionMeta *composition_meta = NULL;
+  GstVideoOverlayComposition *composition = NULL;
+  guint i, nb_rectangle;
+
   glimage_sink = GST_GLIMAGE_SINK (bsink);
 
   GST_TRACE ("preparing buffer:%p", buf);
@@ -1016,31 +1022,99 @@ gst_glimage_sink_prepare (GstBaseSink * bsink, GstBuffer * buf)
   if (!_ensure_gl_setup (glimage_sink))
     return GST_FLOW_NOT_NEGOTIATED;
 
-  if (gst_gl_upload_perform_with_buffer (glimage_sink->upload, buf,
-          &uploaded_buffer) != GST_GL_UPLOAD_DONE)
-    goto upload_failed;
 
-  if (!(next_buffer =
-          gst_gl_color_convert_perform (glimage_sink->convert,
-              uploaded_buffer))) {
-    gst_buffer_unref (uploaded_buffer);
-    goto upload_failed;
-  }
+  composition_meta = gst_buffer_get_video_overlay_composition_meta (buf);
+  if (composition_meta) {
+    GstBuffer *comp_buffer = NULL;
+    GstVideoMeta *meta;
+    GstGLMemory *comp_gl_memory;
+    GstVideoInfo text_info;
 
-  gst_video_info_from_caps (&gl_info, glimage_sink->gl_caps);
+    GST_DEBUG ("GstVideoOverlayCompositionMeta found.");
 
-  if (!gst_video_frame_map (&gl_frame, &gl_info, next_buffer,
-          GST_MAP_READ | GST_MAP_GL)) {
-    gst_buffer_unref (uploaded_buffer);
+    composition = composition_meta->overlay;
+
+    nb_rectangle = gst_video_overlay_composition_n_rectangles (composition);
+    for (i = 0; i < nb_rectangle; i++) {
+      GstVideoOverlayRectangle *rectangle;
+      GstMapInfo info;
+      GstVideoMeta *vmeta;
+
+      gint comp_x, comp_y, stride;
+      guint comp_width, comp_height;
+
+      rectangle = gst_video_overlay_composition_get_rectangle (composition, i);
+
+      comp_buffer =
+          gst_video_overlay_rectangle_get_pixels_unscaled_argb (rectangle,
+          GST_VIDEO_OVERLAY_FORMAT_FLAG_PREMULTIPLIED_ALPHA);
+
+      gst_video_overlay_rectangle_get_render_rectangle (rectangle,
+          &comp_x, &comp_y, &comp_width, &comp_height);
+
+      vmeta = gst_buffer_get_video_meta (comp_buffer);
+      gst_video_meta_map (vmeta, 0, &info, &raw_overlay_data, &stride,
+          GST_MAP_READ);
+
+      gst_video_meta_unmap (vmeta, 0, &info);
+
+      if (raw_overlay_data != NULL) {
+        GST_DEBUG ("Found overlay buffer x %d y %d w %d h %d", comp_x, comp_y,
+            comp_width, comp_height);
+      } else {
+        GST_WARNING_OBJECT (glimage_sink, "Cannot upload overlay texture");
+      }
+
+      meta = gst_buffer_get_video_meta (comp_buffer);
+
+      gst_video_info_init (&text_info);
+      gst_video_info_set_format (&text_info, meta->format, meta->width,
+          meta->height);
+
+      comp_gl_memory =
+          gst_gl_memory_wrapped (glimage_sink->context, &text_info, 0, NULL,
+          raw_overlay_data, NULL, NULL);
+
+      uploaded_buffer = gst_buffer_new ();
+      gst_buffer_append_memory (uploaded_buffer,
+          gst_memory_ref ((GstMemory *) comp_gl_memory));
+
+      gst_buffer_replace (&glimage_sink->next_buffer, uploaded_buffer);
+
+      if (!gst_video_frame_map (&gl_frame, &text_info, uploaded_buffer,
+              GST_MAP_READ | GST_MAP_GL)) {
+        gst_buffer_unref (uploaded_buffer);
+        goto upload_failed;
+      }
+
+    }
+
+  } else {
+    if (gst_gl_upload_perform_with_buffer (glimage_sink->upload, buf,
+            &uploaded_buffer) != GST_GL_UPLOAD_DONE)
+      goto upload_failed;
+
+    if (!(next_buffer =
+            gst_gl_color_convert_perform (glimage_sink->convert,
+                uploaded_buffer))) {
+      gst_buffer_unref (uploaded_buffer);
+      goto upload_failed;
+    }
+    gst_video_info_from_caps (&gl_info, glimage_sink->gl_caps);
+
+    if (!gst_video_frame_map (&gl_frame, &gl_info, next_buffer,
+            GST_MAP_READ | GST_MAP_GL)) {
+      gst_buffer_unref (uploaded_buffer);
+      gst_buffer_unref (next_buffer);
+      goto upload_failed;
+    }
+
+    gst_buffer_replace (&glimage_sink->next_buffer, next_buffer);
     gst_buffer_unref (next_buffer);
-    goto upload_failed;
   }
+
   gst_buffer_unref (uploaded_buffer);
-
   glimage_sink->next_tex = *(guint *) gl_frame.data[0];
-
-  gst_buffer_replace (&glimage_sink->next_buffer, next_buffer);
-  gst_buffer_unref (next_buffer);
 
   gst_video_frame_unmap (&gl_frame);
 
