@@ -695,13 +695,6 @@ _raw_data_upload_perform (gpointer impl, GstBuffer * buffer,
     gst_gl_memory_setup_wrapped (raw->upload->context,
         &raw->upload->priv->in_info, NULL, raw->in_frame.data, raw->in_tex);
 
-  for (i = 0; i < GST_VIDEO_MAX_PLANES; i++) {
-    if (raw->in_tex[i]) {
-      raw->in_tex[i]->data = raw->in_frame.data[i];
-      GST_GL_MEMORY_FLAG_SET (raw->in_tex[i], GST_GL_MEMORY_FLAG_NEED_UPLOAD);
-    }
-  }
-
   *outbuf = gst_buffer_new ();
   for (i = 0; i < GST_VIDEO_INFO_N_PLANES (&raw->upload->priv->in_info); i++) {
     gst_buffer_append_memory (*outbuf,
