@@ -308,25 +308,18 @@ const gchar *mandelbrot_fragment_src = "\
       frag_color = iterate_pixel(fractal_position); \
     }";
 
-
-const gchar *checkers_vertex_src = "attribute vec4 position; \
-    uniform mat4 mvp; \
+const gchar *checkers_fragment_src = "\
+    #version 330 \n\
+    in vec2 out_uv; \
+    out vec4 frag_color; \
+    uniform float checker_width; \
     void main() \
     { \
-       gl_Position = mvp * position; \
+      vec2 xy_index = floor(out_uv.xy / checker_width); \
+      vec2 xy_mod = mod(xy_index, vec2(2.0, 2.0)); \
+      float result = step(mod(xy_mod.x + xy_mod.y, 2.0), 0.5); \
+      frag_color = vec4(result, 1.0 - result, 0.0, 1.0); \
     }";
-
-const gchar *checkers_fragment_src = "uniform float checker_width; \
-    void main() \
-    { \
-      vec2 xy_index= floor((gl_FragCoord.xy-vec2(0.5,0.5))/checker_width); \
-      vec2 xy_mod=mod(xy_index,vec2(2.0,2.0)); \
-      float result=mod(xy_mod.x+xy_mod.y,2.0); \
-      gl_FragColor.r=step(result,0.5); \
-      gl_FragColor.g=1.0-gl_FragColor.r; \
-      gl_FragColor.ba=vec2(0,1); \
-    }";
-
 
 static void
 gst_gl_test_src_set_pattern (GstGLTestSrc * gltestsrc, gint pattern_type)
@@ -360,22 +353,22 @@ gst_gl_test_src_set_pattern (GstGLTestSrc * gltestsrc, gint pattern_type)
       gltestsrc->make_image = gst_gl_test_src_blue;
       break;
     case GST_GL_TEST_SRC_CHECKERS1:
-      gltestsrc->vertex_src = checkers_vertex_src;
+      gltestsrc->vertex_src = uv_vertex_src;
       gltestsrc->fragment_src = checkers_fragment_src;
       gltestsrc->make_image = gst_gl_test_src_checkers1;
       break;
     case GST_GL_TEST_SRC_CHECKERS2:
-      gltestsrc->vertex_src = checkers_vertex_src;
+      gltestsrc->vertex_src = uv_vertex_src;
       gltestsrc->fragment_src = checkers_fragment_src;
       gltestsrc->make_image = gst_gl_test_src_checkers2;
       break;
     case GST_GL_TEST_SRC_CHECKERS4:
-      gltestsrc->vertex_src = checkers_vertex_src;
+      gltestsrc->vertex_src = uv_vertex_src;
       gltestsrc->fragment_src = checkers_fragment_src;
       gltestsrc->make_image = gst_gl_test_src_checkers4;
       break;
     case GST_GL_TEST_SRC_CHECKERS8:
-      gltestsrc->vertex_src = checkers_vertex_src;
+      gltestsrc->vertex_src = uv_vertex_src;
       gltestsrc->fragment_src = checkers_fragment_src;
       gltestsrc->make_image = gst_gl_test_src_checkers8;
       break;

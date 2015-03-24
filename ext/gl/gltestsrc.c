@@ -393,7 +393,7 @@ gst_gl_test_src_unicolor (GstGLTestSrc * v, GstBuffer * buffer, int w,
     int h, const struct vts_color_struct *color)
 {
 #if GST_GL_HAVE_OPENGL
-  if (gst_gl_context_get_gl_api (v->context) & GST_GL_API_OPENGL) {
+  if (gst_gl_context_get_gl_api (v->context)) {
     glClearColor (color->R, color->G, color->B, 1.0f);
     glClear (GL_COLOR_BUFFER_BIT);
   }
@@ -431,12 +431,23 @@ gst_gl_test_src_blue (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
 }
 
 static void
-gst_gl_test_src_checkers (GstGLTestSrc * v, gint checker_width)
+gst_gl_test_src_checkers (GstGLTestSrc * v, gint checker_width, int w, int h)
 {
   GstGLFuncs *gl = v->context->gl_vtable;
 
-  GLuint vertex_array = -1;
-  GLuint index_buffer = -1;
+  GLuint vertex_array;
+  GLuint index_buffer;
+  GLuint uv_buffer;
+  GLuint attr_uv_loc = gst_gl_shader_get_attribute_location (v->shader, "uv");
+
+  /* *INDENT-OFF* */
+  GLfloat pixel_coords[] = {
+       0, h,
+       w, h,
+       w, 0,
+       0, 0,
+  };
+  /* *INDENT-ON* */
 
   if (gst_gl_context_get_gl_api (v->context)) {
     gst_gl_context_clear_shader (v->context);
@@ -450,8 +461,16 @@ gst_gl_test_src_checkers (GstGLTestSrc * v, gint checker_width)
     glBufferData (GL_ELEMENT_ARRAY_BUFFER, 5 * sizeof (GLuint), indices,
         GL_STATIC_DRAW);
 
-    gst_gl_test_src_position_uv_buffer (v,
-        v->shader, &vertex_array, index_buffer, positions_fullscreen);
+    gst_gl_test_src_position_buffer (v, v->shader, &vertex_array, index_buffer,
+        positions_fullscreen);
+
+    /* upload uv buffer */
+    gl->GenBuffers (1, &uv_buffer);
+    gl->BindBuffer (GL_ARRAY_BUFFER, uv_buffer);
+    gl->VertexAttribPointer (attr_uv_loc, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    gl->EnableVertexAttribArray (attr_uv_loc);
+    gl->BufferData (GL_ARRAY_BUFFER, 8 * sizeof (GLfloat), pixel_coords,
+        GL_STATIC_DRAW);
 
     gst_gl_shader_set_uniform_1f (v->shader, "checker_width", checker_width);
 
@@ -465,27 +484,27 @@ gst_gl_test_src_checkers (GstGLTestSrc * v, gint checker_width)
 void
 gst_gl_test_src_checkers1 (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
 {
-  gst_gl_test_src_checkers (v, 1);
+  gst_gl_test_src_checkers (v, 1, w, h);
 }
 
 
 void
 gst_gl_test_src_checkers2 (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
 {
-  gst_gl_test_src_checkers (v, 2);
+  gst_gl_test_src_checkers (v, 2, w, h);
 }
 
 void
 gst_gl_test_src_checkers4 (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
 {
-  gst_gl_test_src_checkers (v, 4);
+  gst_gl_test_src_checkers (v, 4, w, h);
 
 }
 
 void
 gst_gl_test_src_checkers8 (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
 {
-  gst_gl_test_src_checkers (v, 8);
+  gst_gl_test_src_checkers (v, 8, w, h);
 }
 
 void
