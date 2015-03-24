@@ -256,7 +256,7 @@ const gchar *snow_fragment_src = "\
 
 
 const gchar *mandelbrot_vertex_src = "\
-    #version 330 \n\
+    #version 300 es\n\
     in vec4 position; \
     in vec2 uv; \
     out vec2 fractal_position; \
@@ -269,7 +269,8 @@ const gchar *mandelbrot_vertex_src = "\
     }";
 
 const gchar *mandelbrot_fragment_src = "\
-    #version 330 \n\
+    #version 300 es\n\
+    precision mediump float; \
     uniform float time; \
     in vec2 fractal_position; \
     out vec4 frag_color; \
