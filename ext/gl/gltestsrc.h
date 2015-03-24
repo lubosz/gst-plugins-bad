@@ -25,14 +25,12 @@
 #include "gstgltestsrc.h"
 
 struct vts_color_struct {
-        guint8 Y, U, V;
-        guint8 R, G, B;
-	guint8 A;
+        GLfloat R, G, B;
 };
 
 void    gst_gl_test_src_smpte        (GstGLTestSrc * v,
                                          GstBuffer *buffer, int w, int h);
-void    gst_gl_test_src_shader       (GstGLTestSrc * v,
+void    gst_gl_test_src_uv_plane     (GstGLTestSrc * v,
                                          GstBuffer *buffer, int w, int h);
 void    gst_gl_test_src_black        (GstGLTestSrc * v,
                                          GstBuffer *buffer, int w, int h);

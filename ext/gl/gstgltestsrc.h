@@ -101,6 +101,8 @@ struct _GstGLTestSrc {
 
     GstGLShader *shader;
 
+    GList *shaders;
+
     GstBuffer* buffer;
     GstBufferPool *pool;
 
@@ -117,6 +119,8 @@ struct _GstGLTestSrc {
     void (*make_image) (GstGLTestSrc* v, GstBuffer* buffer, gint w, gint h);
 
     GstCaps *out_caps;
+
+    GLuint * vertex_arrays;
 };
 
 struct _GstGLTestSrcClass {

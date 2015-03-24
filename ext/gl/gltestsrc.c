@@ -51,211 +51,122 @@ enum
 
 static const struct vts_color_struct vts_colors[] = {
   /* 100% white */
-  {255, 128, 128, 255, 255, 255, 255},
+  {1.0f, 1.0f, 1.0f},
   /* yellow */
-  {226, 0, 155, 255, 255, 0, 255},
+  {1.0f, 1.0f, 0.0f},
   /* cyan */
-  {179, 170, 0, 0, 255, 255, 255},
+  {0.0f, 1.0f, 1.0f},
   /* green */
-  {150, 46, 21, 0, 255, 0, 255},
+  {0.0f, 1.0f, 0.0f},
   /* magenta */
-  {105, 212, 235, 255, 0, 255, 255},
+  {1.0f, 0.0f, 1.0f},
   /* red */
-  {76, 85, 255, 255, 0, 0, 255},
+  {1.0f, 0.0f, 0.0f},
   /* blue */
-  {29, 255, 107, 0, 0, 255, 255},
+  {0.0f, 0.0f, 1.0f},
   /* black */
-  {16, 128, 128, 0, 0, 0, 255},
+  {0.0f, 0.0f, 0.0f},
   /* -I */
-  {16, 198, 21, 0, 0, 128, 255},
+  {0.0, 0.0f, 0.5f},
   /* +Q */
-  {16, 235, 198, 0, 128, 255, 255},
+  {0.0f, 0.5, 1.0f},
   /* superblack */
-  {0, 128, 128, 0, 0, 0, 255},
-  /* 5% grey */
-  {32, 128, 128, 32, 32, 32, 255},
+  {0.0f, 0.0f, 0.0f},
+  /* 7.421875% grey */
+  {19 / 256.0f, 19 / 256.0f, 19 / 256.0},
 };
 
 static void
 gst_gl_test_src_unicolor (GstGLTestSrc * v, GstBuffer * buffer, int w,
     int h, const struct vts_color_struct *color);
 
-void
-gst_gl_test_src_smpte (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
-{
-#if GST_GL_HAVE_OPENGL
-  int i;
-
-  if (gst_gl_context_get_gl_api (v->context) & GST_GL_API_OPENGL) {
-
-    glClearColor (0.0, 0.0, 0.0, 1.0);
-    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glDisable (GL_CULL_FACE);
-
-    glMatrixMode (GL_PROJECTION);
-    glLoadIdentity ();
-
-    for (i = 0; i < 7; i++) {
-      glColor4f (vts_colors[i].R * (1 / 255.0f), vts_colors[i].G * (1 / 255.0f),
-          vts_colors[i].B * (1 / 255.0f), 1.0f);
-      glBegin (GL_QUADS);
-      glVertex3f (-1.0f + i * (2.0f / 7.0f), -1.0f + 2.0 * (2.0f / 3.0f), 0);
-      glVertex3f (-1.0f + (i + 1.0f) * (2.0f / 7.0f),
-          -1.0f + 2.0f * (2.0f / 3.0f), 0);
-      glVertex3f (-1.0f + (i + 1.0f) * (2.0f / 7.0f), -1.0f, 0);
-      glVertex3f (-1.0f + i * (2.0f / 7.0f), -1.0f, 0);
-      glEnd ();
-    }
-
-    for (i = 0; i < 7; i++) {
-      int k;
-
-      if (i & 1) {
-        k = 7;
-      } else {
-        k = 6 - i;
-      }
-
-      glColor4f (vts_colors[k].R * (1 / 255.0f), vts_colors[k].G * (1 / 255.0f),
-          vts_colors[k].B * (1 / 255.0f), 1.0f);
-      glBegin (GL_QUADS);
-      glVertex3f (-1.0f + i * (2.0f / 7.0f), -1.0f + 2.0f * (3.0f / 4.0f), 0);
-      glVertex3f (-1.0f + (i + 1) * (2.0f / 7.0f), -1.0f + 2.0f * (3.0f / 4.0f),
-          0);
-      glVertex3f (-1.0f + (i + 1) * (2.0f / 7.0f), -1.0f + 2.0f * (2.0f / 3.0f),
-          0);
-      glVertex3f (-1.0f + i * (2.0f / 7.0f), -1.0f + 2.0f * (2.0f / 3.0f), 0);
-      glEnd ();
-    }
-
-    for (i = 0; i < 3; i++) {
-      int k;
-
-      if (i == 0) {
-        k = 8;
-      } else if (i == 1) {
-        k = 0;
-      } else {
-        k = 9;
-      }
-
-      glColor4f (vts_colors[k].R * (1 / 255.0f), vts_colors[k].G * (1 / 255.0f),
-          vts_colors[k].B * (1 / 255.0f), 1.0f);
-      glBegin (GL_QUADS);
-      glVertex3f (-1.0f + i * (2.0f / 6.0f), -1.0f + 2.0f * 1, 0);
-      glVertex3f (-1.0f + (i + 1) * (2.0f / 6.0f), -1.0f + 2.0f * 1, 0);
-      glVertex3f (-1.0f + (i + 1) * (2.0f / 6.0f), -1.0f + 2.0f * (3.0f / 4.0f),
-          0);
-      glVertex3f (-1.0f + i * (2.0f / 6.0f), -1.0f + 2.0f * (3.0f / 4.0f), 0);
-      glEnd ();
-    }
-
-    for (i = 0; i < 3; i++) {
-      int k;
-
-      if (i == 0) {
-        k = COLOR_SUPER_BLACK;
-      } else if (i == 1) {
-        k = COLOR_BLACK;
-      } else {
-        k = COLOR_DARK_GREY;
-      }
-
-      glColor4f (vts_colors[k].R * (1 / 255.0f), vts_colors[k].G * (1 / 255.0f),
-          vts_colors[k].B * (1 / 255.0f), 1.0f);
-      glBegin (GL_QUADS);
-      glVertex3f (-1.0f + 2.0f * (0.5f + i * (1.0f / 12.0f)), -1.0 + 2.0f * 1,
-          0);
-      glVertex3f (-1.0f + 2.0f * (0.5f + (i + 1) * (1.0f / 12.0f)),
-          -1.0f + 2.0f * 1, 0);
-      glVertex3f (-1.0f + 2.0f * (0.5f + (i + 1) * (1.0f / 12.0f)),
-          -1.0f + 2.0f * (3.0f / 4.0f), 0);
-      glVertex3f (-1.0f + 2.0f * (0.5f + i * (1.0f / 12.0f)),
-          -1.0f + 2.0f * (3.0f / 4.0f), 0);
-      glEnd ();
-    }
-
-    glColor4f (1.0, 1.0, 1.0, 1.0);
-    glBegin (GL_QUADS);
-    glVertex3f (-1.0 + 2.0 * (0.75), -1.0 + 2.0 * 1, 0);
-    glVertex3f (-1.0 + 2.0 * (1.0), -1.0 + 2.0 * 1, 0);
-    glVertex3f (-1.0 + 2.0 * (1.0), -1.0 + 2.0 * (3.0 / 4.0), 0);
-    glVertex3f (-1.0 + 2.0 * (0.75), -1.0 + 2.0 * (3.0 / 4.0), 0);
-    glEnd ();
-  }
-#endif
-}
-
 /* *INDENT-OFF* */
-
-static const GLfloat positions[] = {
-     -1.0,  1.0,  0.0, 1.0,
-      1.0,  1.0,  0.0, 1.0,
-      1.0, -1.0,  0.0, 1.0,
-     -1.0, -1.0,  0.0, 1.0,
+static const GLfloat positions_fullscreen[] = {
+     -1.0,  1.0, 0.0, 1.0,
+      1.0,  1.0, 0.0, 1.0,
+      1.0, -1.0, 0.0, 1.0,
+     -1.0, -1.0, 0.0, 1.0,
 };
+
+static const GLfloat positions_snow[] = {
+    0.5, 1.0, 0.0, 1.0,
+    1.0, 1.0, 0.0, 1.0,
+    0.5, 0.5, 0.0, 1.0,
+    1.0, 0.5, 0.0, 1.0
+  };
 
 static const GLushort indices[] = { 0, 1, 2, 3, 0 };
 
 static const GLfloat identitiy_matrix[] = {
-      1.0,  0.0,  0.0, 0.0,
-      0.0,  1.0,  0.0, 0.0,
-      0.0,  0.0,  1.0, 0.0,
-      0.0,  0.0,  0.0, 1.0,
+      1.0, 0.0, 0.0, 0.0,
+      0.0, 1.0, 0.0, 0.0,
+      0.0, 0.0, 1.0, 0.0,
+      0.0, 0.0, 0.0, 1.0,
 };
 
 static const GLfloat uvs[] = {
-     0.0,  1.0,
-     1.0,  1.0,
-     1.0,  0.0,
-     0.0,  0.0,
+     0.0, 1.0,
+     1.0, 1.0,
+     1.0, 0.0,
+     0.0, 0.0,
 };
 /* *INDENT-ON* */
 
-void
-gst_gl_test_src_shader (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
+static void
+gst_gl_test_src_position_buffer (GstGLTestSrc * v,
+    GstGLShader * shader,
+    GLuint * vertex_array, GLuint index_buffer, const GLfloat * positions)
 {
+  GstGLFuncs *gl = v->context->gl_vtable;
+  GLuint position_buffer;
+  GLint attr_position_loc =
+      gst_gl_shader_get_attribute_location (shader, "position");
 
+  gl->GenVertexArrays (1, vertex_array);
+  gl->BindVertexArray (*vertex_array);
+
+  /* upload vertex buffer */
+  gl->GenBuffers (1, &position_buffer);
+  gl->BindBuffer (GL_ARRAY_BUFFER, position_buffer);
+  gl->VertexAttribPointer (attr_position_loc, 4, GL_FLOAT, GL_FALSE, 0, 0);
+  gl->EnableVertexAttribArray (attr_position_loc);
+  gl->BufferData (GL_ARRAY_BUFFER, 16 * sizeof (GLfloat), positions,
+      GL_STATIC_DRAW);
+
+  /* bind index buffer */
+  gl->BindBuffer (GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+}
+
+static void
+gst_gl_test_src_position_uv_buffer (GstGLTestSrc * v,
+    GstGLShader * shader,
+    GLuint * vertex_array, GLuint index_buffer, const GLfloat * positions)
+{
+  GLuint uv_buffer;
+  GstGLFuncs *gl = v->context->gl_vtable;
+  GLuint attr_uv_loc = gst_gl_shader_get_attribute_location (shader, "uv");
+  gst_gl_test_src_position_buffer (v, shader, vertex_array, index_buffer,
+      positions);
+
+  /* upload uv buffer */
+  gl->GenBuffers (1, &uv_buffer);
+  gl->BindBuffer (GL_ARRAY_BUFFER, uv_buffer);
+  gl->VertexAttribPointer (attr_uv_loc, 2, GL_FLOAT, GL_FALSE, 0, 0);
+  gl->EnableVertexAttribArray (attr_uv_loc);
+  gl->BufferData (GL_ARRAY_BUFFER, 8 * sizeof (GLfloat), uvs, GL_STATIC_DRAW);
+}
+
+void
+gst_gl_test_src_uv_plane (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
+{
   GstGLFuncs *gl = v->context->gl_vtable;
 
-  GLint attr_position_loc = -1;
-  GLint attr_uv_loc = -1;
-
   GLuint vertex_array;
-
-  GLuint position_buffer;
-  GLuint uv_buffer;
   GLuint index_buffer;
 
   if (gst_gl_context_get_gl_api (v->context)) {
-
     gst_gl_context_clear_shader (v->context);
-    gl->BindTexture (GL_TEXTURE_2D, 0);
-
     gst_gl_shader_use (v->shader);
-
-    attr_position_loc =
-        gst_gl_shader_get_attribute_location (v->shader, "position");
-    attr_uv_loc = gst_gl_shader_get_attribute_location (v->shader, "uv");
-
-    glGenVertexArrays (1, &vertex_array);
-    glBindVertexArray (vertex_array);
-
-    // vertex
-    glGenBuffers (1, &position_buffer);
-    glBindBuffer (GL_ARRAY_BUFFER, position_buffer);
-    glVertexAttribPointer (attr_position_loc, 4, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray (attr_position_loc);
-    glBufferData (GL_ARRAY_BUFFER, 16 * sizeof (GLfloat), positions,
-        GL_STATIC_DRAW);
-
-    // uv
-    glGenBuffers (1, &uv_buffer);
-    glBindBuffer (GL_ARRAY_BUFFER, uv_buffer);
-    glVertexAttribPointer (attr_uv_loc, 2, GL_FLOAT, GL_FALSE, 0, 0);
-    glEnableVertexAttribArray (attr_uv_loc);
-    glBufferData (GL_ARRAY_BUFFER, 8 * sizeof (GLfloat), uvs, GL_STATIC_DRAW);
 
     // index
     glGenBuffers (1, &index_buffer);
@@ -263,8 +174,8 @@ gst_gl_test_src_shader (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
     glBufferData (GL_ELEMENT_ARRAY_BUFFER, 5 * sizeof (GLuint), indices,
         GL_STATIC_DRAW);
 
-    gst_gl_shader_set_uniform_matrix_4fv (v->shader, "mvp",
-        1, GL_FALSE, identitiy_matrix);
+    gst_gl_test_src_position_uv_buffer (v,
+        v->shader, &vertex_array, index_buffer, positions_fullscreen);
 
     gst_gl_shader_set_uniform_1f (v->shader, "time",
         (gfloat) v->running_time / GST_SECOND);
@@ -274,8 +185,204 @@ gst_gl_test_src_shader (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
 
     gl->DrawElements (GL_TRIANGLE_STRIP, 5, GL_UNSIGNED_SHORT, 0);
 
-    gl->DisableVertexAttribArray (attr_position_loc);
-    gl->DisableVertexAttribArray (attr_uv_loc);
+    gst_gl_context_clear_shader (v->context);
+  }
+}
+
+const gchar *color_vertex_src = "\
+    #version 330 \n\
+    in vec4 position; \
+    void main() \
+    { \
+       gl_Position = position; \
+    }";
+
+const gchar *color_fragment_src = "\
+    #version 330 \n\
+    out vec4 frag_color; \
+    uniform vec4 color; \
+    \
+    void main() \
+    { \
+      frag_color = color; \
+    }";
+
+const gchar *snow_vertex_src2 = "\
+    #version 330 \n\
+    in vec4 position; \
+    in vec2 uv; \
+    out vec2 out_uv; \
+    void main() \
+    { \
+       gl_Position = position; \
+       out_uv = uv; \
+    }";
+
+const gchar *snow_fragment_src2 = "\
+    #version 330 \n\
+    in vec2 out_uv; \
+    out vec4 frag_color; \
+    uniform float time; \
+    \
+    float rand(vec2 co){ \
+        return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453); \
+    } \
+    void main() \
+    { \
+      frag_color = rand(time * out_uv) * vec4(1); \
+    }";
+
+static void
+gst_gl_test_src_smpte_init_shader (gpointer shaderp)
+{
+  GstGLShader *shader = (GstGLShader *) shaderp;
+  GError *error = NULL;
+  gst_gl_shader_compile (shader, &error);
+  if (error) {
+    gst_gl_context_set_error (shader->context, "%s", error->message);
+    g_error_free (error);
+    gst_gl_context_clear_shader (shader->context);
+    return;
+  }
+}
+
+static void
+gst_gl_test_src_smpte_init (GstGLTestSrc * v)
+{
+  GstGLShader *color_shader, *snow_shader;
+  GstGLFuncs *gl = v->context->gl_vtable;
+  GLuint index_buffer;
+
+  v->vertex_arrays = malloc (21 * sizeof (GLuint));
+
+  color_shader = gst_gl_shader_new (v->context);
+  gst_gl_shader_set_vertex_source (color_shader, color_vertex_src);
+  gst_gl_shader_set_fragment_source (color_shader, color_fragment_src);
+  v->shaders = g_list_append (v->shaders, color_shader);
+
+  snow_shader = gst_gl_shader_new (v->context);
+  gst_gl_shader_set_vertex_source (snow_shader, snow_vertex_src2);
+  gst_gl_shader_set_fragment_source (snow_shader, snow_fragment_src2);
+  v->shaders = g_list_append (v->shaders, snow_shader);
+
+  g_list_foreach (v->shaders, (GFunc) gst_gl_test_src_smpte_init_shader, NULL);
+
+  /* make an index buffer for all planes */
+  gl->GenBuffers (1, &index_buffer);
+  gl->BindBuffer (GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+  gl->BufferData (GL_ELEMENT_ARRAY_BUFFER, 5 * sizeof (GLuint), indices,
+      GL_STATIC_DRAW);
+
+  for (int i = 0; i < 7; i++) {
+    /* *INDENT-OFF* */
+    GLfloat color_plane_positions[] = {
+      -1.0f +       i * (2.0f / 7.0f), 1.0f / 3.0f, 0, 1.0f,
+      -1.0f + (i + 1) * (2.0f / 7.0f), 1.0f / 3.0f, 0, 1.0f,
+      -1.0f +       i * (2.0f / 7.0f),       -1.0f, 0, 1.0f,
+      -1.0f + (i + 1) * (2.0f / 7.0f),       -1.0f, 0, 1.0f,
+    };
+    /* *INDENT-ON* */
+    gst_gl_test_src_position_buffer (v, color_shader,
+        &v->vertex_arrays[i], index_buffer, color_plane_positions);
+  }
+
+  for (int i = 0; i < 7; i++) {
+    /* *INDENT-OFF* */
+    GLfloat color_plane_positions[] = {
+      -1.0f + i       * (2.0f / 7.0f),        0.5f, 0, 1.0f,
+      -1.0f + (i + 1) * (2.0f / 7.0f),        0.5f, 0, 1.0f,
+      -1.0f + i       * (2.0f / 7.0f), 1.0f / 3.0f, 0, 1.0f,
+      -1.0f + (i + 1) * (2.0f / 7.0f), 1.0f / 3.0f, 0, 1.0f
+    };
+    /* *INDENT-ON* */
+    gst_gl_test_src_position_buffer (v, color_shader,
+        &v->vertex_arrays[i + 7], index_buffer, color_plane_positions);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    /* *INDENT-OFF* */
+    GLfloat color_plane_positions[] = {
+      -1.0f +       i / 3.0f, 1.0f, 0.0f, 1.0f,
+      -1.0f + (i + 1) / 3.0f, 1.0f, 0.0f, 1.0f,
+      -1.0f +       i / 3.0f, 0.5f, 0.0f, 1.0f,
+      -1.0f + (i + 1) / 3.0f, 0.5f, 0.0f, 1.0f
+    };
+    /* *INDENT-ON* */
+    gst_gl_test_src_position_buffer (v, color_shader,
+        &v->vertex_arrays[i + 14], index_buffer, color_plane_positions);
+  }
+
+  for (int i = 0; i < 3; i++) {
+    /* *INDENT-OFF* */
+    GLfloat color_plane_positions[] = {
+            i / 6.0f, 1.0f, 0.0f, 1.0f,
+      (i + 1) / 6.0f, 1.0f, 0.0f, 1.0f,
+            i / 6.0f, 0.5f, 0.0f, 1.0f,
+      (i + 1) / 6.0f, 0.5f, 0.0f, 1.0f
+    };
+    /* *INDENT-ON* */
+    gst_gl_test_src_position_buffer (v, color_shader,
+        &v->vertex_arrays[i + 17], index_buffer, color_plane_positions);
+  }
+  gst_gl_test_src_position_uv_buffer (v, snow_shader,
+      &v->vertex_arrays[20], index_buffer, positions_snow);
+}
+
+void
+gst_gl_test_src_smpte (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
+{
+  GstGLFuncs *gl = v->context->gl_vtable;
+
+  if (v->shaders == NULL)
+    gst_gl_test_src_smpte_init (v);
+
+  if (gst_gl_context_get_gl_api (v->context)) {
+    GstGLShader *color_shader = (GstGLShader *) g_list_nth_data (v->shaders, 0);
+    GstGLShader *snow_shader = (GstGLShader *) g_list_nth_data (v->shaders, 1);
+
+    gst_gl_context_clear_shader (v->context);
+    gst_gl_shader_use (color_shader);
+
+    for (int i = 0; i < 20; i++) {
+      int k;
+      if (i < 7) {
+        k = i;
+      } else if ((i - 7) & 1) {
+        k = COLOR_BLACK;
+      } else {
+        k = 13 - i;
+      }
+
+      if (i == 14) {
+        k = COLOR_NEG_I;
+      } else if (i == 15) {
+        k = COLOR_WHITE;
+      } else if (i == 16) {
+        k = COLOR_POS_Q;
+      } else if (i == 17) {
+        k = COLOR_SUPER_BLACK;
+      } else if (i == 18) {
+        k = COLOR_BLACK;
+      } else if (i == 19) {
+        k = COLOR_DARK_GREY;
+      }
+
+      glBindVertexArray (v->vertex_arrays[i]);
+      gst_gl_shader_set_uniform_4f (color_shader, "color",
+          vts_colors[k].R, vts_colors[k].G, vts_colors[k].B, 1.0f);
+
+      gl->DrawElements (GL_TRIANGLE_STRIP, 5, GL_UNSIGNED_SHORT, 0);
+    }
+
+    gst_gl_context_clear_shader (v->context);
+
+    gst_gl_shader_use (snow_shader);
+    glBindVertexArray (v->vertex_arrays[20]);
+
+    gst_gl_shader_set_uniform_1f (snow_shader, "time",
+        (gfloat) v->running_time / GST_SECOND);
+
+    gl->DrawElements (GL_TRIANGLE_STRIP, 5, GL_UNSIGNED_SHORT, 0);
 
     gst_gl_context_clear_shader (v->context);
   }
@@ -287,8 +394,7 @@ gst_gl_test_src_unicolor (GstGLTestSrc * v, GstBuffer * buffer, int w,
 {
 #if GST_GL_HAVE_OPENGL
   if (gst_gl_context_get_gl_api (v->context) & GST_GL_API_OPENGL) {
-    glClearColor (color->R * (1 / 255.0f), color->G * (1 / 255.0f),
-        color->B * (1 / 255.0f), 1.0f);
+    glClearColor (color->R, color->G, color->B, 1.0f);
     glClear (GL_COLOR_BUFFER_BIT);
   }
 #endif
@@ -327,37 +433,29 @@ gst_gl_test_src_blue (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
 static void
 gst_gl_test_src_checkers (GstGLTestSrc * v, gint checker_width)
 {
-
   GstGLFuncs *gl = v->context->gl_vtable;
 
-  GLushort indices[] = { 0, 1, 2, 3, 0 };
-
-  GLint attr_position_loc = -1;
+  GLuint vertex_array = -1;
+  GLuint index_buffer = -1;
 
   if (gst_gl_context_get_gl_api (v->context)) {
-
     gst_gl_context_clear_shader (v->context);
     gl->BindTexture (GL_TEXTURE_2D, 0);
 
     gst_gl_shader_use (v->shader);
 
-    attr_position_loc =
-        gst_gl_shader_get_attribute_location (v->shader, "position");
+    // index
+    glGenBuffers (1, &index_buffer);
+    glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, index_buffer);
+    glBufferData (GL_ELEMENT_ARRAY_BUFFER, 5 * sizeof (GLuint), indices,
+        GL_STATIC_DRAW);
 
-    /* Load the vertex position */
-    gl->VertexAttribPointer (attr_position_loc, 4, GL_FLOAT,
-        GL_FALSE, 0, positions);
-
-    gl->EnableVertexAttribArray (attr_position_loc);
-
-    gst_gl_shader_set_uniform_matrix_4fv (v->shader, "mvp",
-        1, GL_FALSE, identitiy_matrix);
+    gst_gl_test_src_position_uv_buffer (v,
+        v->shader, &vertex_array, index_buffer, positions_fullscreen);
 
     gst_gl_shader_set_uniform_1f (v->shader, "checker_width", checker_width);
 
-    gl->DrawElements (GL_TRIANGLE_STRIP, 5, GL_UNSIGNED_SHORT, indices);
-
-    gl->DisableVertexAttribArray (attr_position_loc);
+    gl->DrawElements (GL_TRIANGLE_STRIP, 5, GL_UNSIGNED_SHORT, 0);
 
     gst_gl_context_clear_shader (v->context);
   }

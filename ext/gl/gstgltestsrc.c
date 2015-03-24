@@ -4,6 +4,7 @@
  * Copyright (C) 2002,2007 David A. Schleef <ds@schleef.org>
  * Copyright (C) 2008 Julien Isorce <julien.isorce@gmail.com>
  * Copyright (C) 2015 Matthew Waters <matthew@centricular.com>
+ * Copyright (C) 2015 Lubosz Sarnecki <lubosz.sarnecki@collabora.co.uk>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -198,6 +199,10 @@ gst_gl_test_src_init (GstGLTestSrc * src)
   gst_gl_test_src_set_pattern (src, GST_GL_TEST_SRC_SMPTE);
 
   src->timestamp_offset = 0;
+  src->shaders = NULL;
+  src->vertex_src = NULL;
+  src->fragment_src = NULL;
+  src->vertex_arrays = NULL;
 
   /* we operate in time */
   gst_base_src_set_format (GST_BASE_SRC (src), GST_FORMAT_TIME);
@@ -224,44 +229,47 @@ gst_gl_test_src_fixate (GstBaseSrc * bsrc, GstCaps * caps)
   return caps;
 }
 
-const gchar *snow_vertex_src = "attribute vec4 position; \
-    attribute vec2 uv; \
-    uniform mat4 mvp; \
-    varying vec2 out_uv; \
+const gchar *uv_vertex_src = "\
+    #version 330 \n\
+    in vec4 position; \
+    in vec2 uv; \
+    out vec2 out_uv; \
     void main() \
     { \
-       gl_Position = mvp * position; \
+       gl_Position = position; \
        out_uv = uv; \
     }";
 
-const gchar *snow_fragment_src = "uniform float time; \
-    varying vec2 out_uv; \
+const gchar *snow_fragment_src = "\
+    #version 330 \n\
+    in vec2 out_uv; \
+    out vec4 frag_color; \
+    uniform float time; \
     \
     float rand(vec2 co){ \
         return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453); \
     } \
     void main() \
     { \
-      gl_FragColor = rand(time * out_uv) * vec4(1); \
+      frag_color = rand(time * out_uv) * vec4(1); \
     }";
 
 
 const gchar *mandelbrot_vertex_src = "\
-    #version 130 \n\
+    #version 330 \n\
     in vec4 position; \
     in vec2 uv; \
-    uniform mat4 mvp; \
-    uniform float aspect_ratio; \
     out vec2 fractal_position; \
+    uniform float aspect_ratio; \
     void main() \
     { \
-       gl_Position = mvp * position; \
+       gl_Position = position; \
        fractal_position = vec2(uv.y - 0.8, aspect_ratio * (uv.x - 0.5)); \
        fractal_position *= 2.5; \
     }";
 
 const gchar *mandelbrot_fragment_src = "\
-    #version 130 \n\
+    #version 330 \n\
     uniform float time; \
     in vec2 fractal_position; \
     out vec4 frag_color; \
@@ -332,9 +340,9 @@ gst_gl_test_src_set_pattern (GstGLTestSrc * gltestsrc, gint pattern_type)
       gltestsrc->make_image = gst_gl_test_src_smpte;
       break;
     case GST_GL_TEST_SRC_SNOW:
-      gltestsrc->vertex_src = snow_vertex_src;
+      gltestsrc->vertex_src = uv_vertex_src;
       gltestsrc->fragment_src = snow_fragment_src;
-      gltestsrc->make_image = gst_gl_test_src_shader;
+      gltestsrc->make_image = gst_gl_test_src_uv_plane;
       break;
     case GST_GL_TEST_SRC_BLACK:
       gltestsrc->make_image = gst_gl_test_src_black;
@@ -380,7 +388,7 @@ gst_gl_test_src_set_pattern (GstGLTestSrc * gltestsrc, gint pattern_type)
     case GST_GL_TEST_SRC_MANDELBROT:
       gltestsrc->vertex_src = mandelbrot_vertex_src;
       gltestsrc->fragment_src = mandelbrot_fragment_src;
-      gltestsrc->make_image = gst_gl_test_src_shader;
+      gltestsrc->make_image = gst_gl_test_src_uv_plane;
       break;
     default:
       g_assert_not_reached ();
@@ -730,6 +738,15 @@ gst_gl_test_src_stop (GstBaseSrc * basesrc)
     gst_gl_context_del_fbo (src->context, src->fbo, src->depthbuffer);
     gst_object_unref (src->context);
     src->context = NULL;
+  }
+
+  if (src->display) {
+    gst_object_unref (src->display);
+    src->display = NULL;
+  }
+
+  if (src->vertex_arrays != NULL) {
+    free (src->vertex_arrays);
   }
 
   return TRUE;
