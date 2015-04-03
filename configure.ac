@@ -298,6 +298,16 @@ AC_SUBST(GRAPHENE_LIBS)
 AC_SUBST(GRAPHENE_CFLAGS)
 AM_CONDITIONAL(HAVE_GRAPHENE, test "x$HAVE_GRAPHENE" = "xyes")
 
+dnl gio-2.0 is optional and used in gltransformation
+HAVE_GIO=NO
+PKG_CHECK_MODULES(GIO, gio-1.0 >= 1.0.0, HAVE_GIO=yes, HAVE_GIO=no)
+if test "x$HAVE_GIO" = "xyes"; then
+  AC_DEFINE(HAVE_GIO, [1] , [Use gio])
+fi
+AC_SUBST(HAVE_GIO)
+AC_SUBST(GIO_LIBS)
+AC_SUBST(GIO_CFLAGS)
+AM_CONDITIONAL(HAVE_GIO, test "x$HAVE_GIO" = "xyes")
 
 dnl sdl is optional and used in examples
 HAVE_SDL=NO

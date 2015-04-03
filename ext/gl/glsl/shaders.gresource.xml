@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/glsl">
+    <file>snow.vert</file>
+    <file>snow.frag</file>
+    <file>color.vert</file>
+    <file>color.frag</file>
+    <file>uv.vert</file>
+    <file>checkers.frag</file>
+    <file>mandelbrot.vert</file>
+    <file>mandelbrot.frag</file>
+  </gresource>
+</gresources>

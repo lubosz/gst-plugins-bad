@@ -65,6 +65,7 @@ libgstopengl_la_SOURCES += \
 	gstglstereosplit.c \
 	gstglstereomix.c \
 	gltestsrc.c \
+	shaders.c \
 	gstgltestsrc.c \
 	gstglmosaic.c
 
@@ -131,7 +132,8 @@ libgstopengl_la_CFLAGS = \
 	$(GST_PLUGINS_BASE_CFLAGS) \
 	$(GL_CFLAGS) \
 	$(LIBPNG_CFLAGS) \
-	$(GRAPHENE_CFLAGS)
+	$(GRAPHENE_CFLAGS) \
+	$(GIO_CFLAGS)
 
 libgstopengl_la_LIBADD = \
 	$(top_builddir)/gst-libs/gst/gl/libgstgl-$(GST_API_VERSION).la \
@@ -144,9 +146,11 @@ libgstopengl_la_LIBADD = \
 	$(LIBPNG_LIBS) \
 	$(JPEG_LIBS) \
 	$(LIBM) \
-	$(GRAPHENE_LIBS)
+	$(GRAPHENE_LIBS) \
+  $(GIO_LIBS)
 
 libgstopengl_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libgstopengl_la_LIBTOOLFLAGS = $(GST_PLUGIN_LIBTOOLFLAGS) --tag=CC
 
-
+shaders.c: glsl/shaders.gresource.xml
+	$(AM_V_GEN) glib-compile-resources --target=$@ --sourcedir=$(top_srcdir)/ext/gl/glsl/ --generate-source $(top_srcdir)/ext/gl/glsl/shaders.gresource.xml

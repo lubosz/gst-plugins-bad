@@ -28,6 +28,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <gio/gio.h>
 
 #ifndef M_PI
 #define M_PI  3.14159265358979323846
@@ -189,49 +190,6 @@ gst_gl_test_src_uv_plane (GstGLTestSrc * v, GstBuffer * buffer, int w, int h)
   }
 }
 
-const gchar *color_vertex_src = "\
-    #version 330 \n\
-    in vec4 position; \
-    void main() \
-    { \
-       gl_Position = position; \
-    }";
-
-const gchar *color_fragment_src = "\
-    #version 330 \n\
-    out vec4 frag_color; \
-    uniform vec4 color; \
-    \
-    void main() \
-    { \
-      frag_color = color; \
-    }";
-
-const gchar *snow_vertex_src2 = "\
-    #version 330 \n\
-    in vec4 position; \
-    in vec2 uv; \
-    out vec2 out_uv; \
-    void main() \
-    { \
-       gl_Position = position; \
-       out_uv = uv; \
-    }";
-
-const gchar *snow_fragment_src2 = "\
-    #version 330 \n\
-    in vec2 out_uv; \
-    out vec4 frag_color; \
-    uniform float time; \
-    \
-    float rand(vec2 co){ \
-        return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453); \
-    } \
-    void main() \
-    { \
-      frag_color = rand(time * out_uv) * vec4(1); \
-    }";
-
 static void
 gst_gl_test_src_smpte_init_shader (gpointer shaderp)
 {
@@ -246,6 +204,30 @@ gst_gl_test_src_smpte_init_shader (gpointer shaderp)
   }
 }
 
+const char *
+gst_gl_test_src_read_shader (const char *file)
+{
+  GBytes *bytes = NULL;
+  GError *error = NULL;
+  const char *shader;
+
+  char *path = g_strjoin ("", "/glsl/", file, NULL);
+  bytes = g_resources_lookup_data (path, 0, &error);
+  g_free (path);
+
+  if (bytes) {
+    shader = (const gchar *) g_bytes_get_data (bytes, NULL);
+    g_bytes_unref (bytes);
+  } else {
+    if (error != NULL) {
+      GST_ERROR ("Unable to read file: %s", error->message);
+      g_error_free (error);
+    }
+    return "";
+  }
+  return shader;
+}
+
 static void
 gst_gl_test_src_smpte_init (GstGLTestSrc * v)
 {
@@ -253,16 +235,21 @@ gst_gl_test_src_smpte_init (GstGLTestSrc * v)
   GstGLFuncs *gl = v->context->gl_vtable;
   GLuint index_buffer;
 
+  const char *color_vertex = gst_gl_test_src_read_shader ("color.vert");
+  const char *color_fragment = gst_gl_test_src_read_shader ("color.frag");
+  const char *snow_vertex = gst_gl_test_src_read_shader ("snow.vert");
+  const char *snow_fragment = gst_gl_test_src_read_shader ("snow.frag");
+
   v->vertex_arrays = malloc (21 * sizeof (GLuint));
 
   color_shader = gst_gl_shader_new (v->context);
-  gst_gl_shader_set_vertex_source (color_shader, color_vertex_src);
-  gst_gl_shader_set_fragment_source (color_shader, color_fragment_src);
+  gst_gl_shader_set_vertex_source (color_shader, color_vertex);
+  gst_gl_shader_set_fragment_source (color_shader, color_fragment);
   v->shaders = g_list_append (v->shaders, color_shader);
 
   snow_shader = gst_gl_shader_new (v->context);
-  gst_gl_shader_set_vertex_source (snow_shader, snow_vertex_src2);
-  gst_gl_shader_set_fragment_source (snow_shader, snow_fragment_src2);
+  gst_gl_shader_set_vertex_source (snow_shader, snow_vertex);
+  gst_gl_shader_set_fragment_source (snow_shader, snow_fragment);
   v->shaders = g_list_append (v->shaders, snow_shader);
 
   g_list_foreach (v->shaders, (GFunc) gst_gl_test_src_smpte_init_shader, NULL);

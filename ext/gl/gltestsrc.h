@@ -53,4 +53,6 @@ void    gst_gl_test_src_checkers8    (GstGLTestSrc * v,
 void    gst_gl_test_src_circular     (GstGLTestSrc * v,
                                          GstBuffer *buffer, int w, int h);
 
+const char * gst_gl_test_src_read_shader(const char * file);
+
 #endif
