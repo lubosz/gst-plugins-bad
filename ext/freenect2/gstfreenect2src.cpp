@@ -640,22 +640,20 @@ freenect2_read_gstbuffer (GstFreenect2Src * src, GstBuffer * buf)
 
     guint8 *pData = (guint8 *) GST_VIDEO_FRAME_PLANE_DATA (&vframe, 0);
     guint8 *pColor = (guint8 *) rgb->data;
-    // Add depth as 8bit alpha channel, depth is 16bit samples.
     float *pDepth = (float *) depth->data;
 
     for (unsigned j = 0; j < rgb->height; ++j) {
       for (unsigned i = 0; i < rgb->width; ++i) {
 
-        float coord = (float)i * (float)depth->width / (float)rgb->width;
-        unsigned uc = (unsigned) coord;
-
-        if (uc > depth->width * depth->height)
-          uc = 0;
-
         pData[4 * i + 2] = pColor[4 * i + 0];
         pData[4 * i + 1] = pColor[4 * i + 1];
         pData[4 * i + 0] = pColor[4 * i + 2];
-        pData[4 * i + 3] = (guint8) pDepth[uc];
+        if (i < depth->width && j < depth->height) {
+          unsigned index = depth->width * j + i;
+          pData[4 * i + 3] = (guint8) pDepth[index];
+        } else {
+          pData[4 * i + 3] = 255;
+        }
 
       }
       pData += GST_VIDEO_FRAME_PLANE_STRIDE (&vframe, 0);
