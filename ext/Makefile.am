@@ -112,6 +112,8 @@ else
  FAAD_DIR=
 endif
 
+FREENECT2_DIR=freenect2
+
 if USE_VOAACENC
  VOAACENC_DIR=voaacenc
 else
@@ -446,6 +448,7 @@ SUBDIRS=\
 	$(FAAC_DIR) \
 	$(FAAD_DIR) \
 	$(FLITE_DIR) \
+	$(FREENECT2_DIR) \
 	$(FLUIDSYNTH_DIR) \
 	$(GSETTINGS_DIR) \
 	$(GSM_DIR) \
@@ -511,6 +514,7 @@ DIST_SUBDIRS = \
 	faad \
 	flite \
 	fluidsynth \
+	freenect2 \
 	gsettings \
 	gsm \
 	hls \
