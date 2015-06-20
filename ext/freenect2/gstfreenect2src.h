@@ -22,6 +22,12 @@
 #include <stdio.h>
 //#include <OpenNI.h>
 
+#include <string>
+#include <libfreenect2/libfreenect2.hpp>
+#include <libfreenect2/frame_listener_impl.h>
+//#include <libfreenect2/threading.h>
+#include <libfreenect2/registration.h>
+#include <libfreenect2/packet_pipeline.h>
 
 #include <gst/base/gstbasesrc.h>
 #include <gst/base/gstpushsrc.h>
@@ -61,7 +67,20 @@ struct _GstFreenect2Src
   /* Timestamp of the first frame */
   GstClockTime oni_start_ts;
 
-  /* OpenNI2 variables */
+  /* Freenect2 variables */
+
+  libfreenect2::Freenect2 *freenect2;
+  libfreenect2::Freenect2Device *dev;
+  libfreenect2::PacketPipeline *pipeline;
+
+  libfreenect2::SyncMultiFrameListener *listener;
+  libfreenect2::FrameMap frames;
+  libfreenect2::Frame *undistorted; 
+  libfreenect2::Frame *registered;
+
+  libfreenect2::Registration* registration;
+
+
   /*
   openni::Device *device;
   openni::VideoStream *depth, *color;
