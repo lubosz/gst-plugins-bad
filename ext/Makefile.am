@@ -113,6 +113,7 @@ else
 endif
 
 FREENECT2_DIR=freenect2
+VRSINK_DIR=vrsink
 
 if USE_VOAACENC
  VOAACENC_DIR=voaacenc
@@ -497,7 +498,8 @@ SUBDIRS=\
 	$(HLS_DIR) \
 	$(WEBP_DIR) \
 	$(X265_DIR) \
-	$(DTLS_DIR)
+	$(DTLS_DIR) \
+	$(VRSINK_DIR)
 
 DIST_SUBDIRS = \
 	assrender \
@@ -561,6 +563,7 @@ DIST_SUBDIRS = \
 	timidity \
 	voaacenc \
 	voamrwbenc \
+	vrsink \
 	xvid \
 	zbar \
 	rtmp \

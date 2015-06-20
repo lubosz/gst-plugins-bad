@@ -3375,6 +3375,7 @@ ext/x265/Makefile
 ext/xvid/Makefile
 ext/zbar/Makefile
 ext/dtls/Makefile
+ext/vrsink/Makefile
 po/Makefile.in
 docs/Makefile
 docs/plugins/Makefile
