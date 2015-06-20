@@ -10,10 +10,10 @@ libgstfreenect2_la_CXXFLAGS = $(GST_PLUGINS_BASE_CFLAGS) $(GST_BASE_CFLAGS) $(GS
 # add other _CFLAGS and _LIBS as needed
 #
 libgstfreenect2_la_CFLAGS = $(GST_PLUGINS_BASE_CFLAGS) $(GST_BASE_CFLAGS) \
-                       $(GST_CFLAGS) $(FREENECT2_CFLAGS)
+                       $(GST_CFLAGS) $(FREENECT2_CFLAGS) $(OPENCV_CFLAGS)
 
 libgstfreenect2_la_LIBADD = $(GST_LIBS) $(GST_BASE_LIBS) $(FREENECT2_LIBS) \
-                       $(GSTPB_BASE_LIBS) -lgstvideo-$(GST_API_VERSION)
+                       $(GSTPB_BASE_LIBS) -lgstvideo-$(GST_API_VERSION) $(OPENCV_LIBS)
 
 libgstfreenect2_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
 libgstfreenect2_la_LIBTOOLFLAGS = $(GST_PLUGIN_LIBTOOLFLAGS)
