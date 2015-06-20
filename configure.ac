@@ -2532,6 +2532,14 @@ AG_GST_CHECK_FEATURE(OPENNI2, [openni2 library], openni2, [
   AC_SUBST(OPENNI2_LIBS)
 ])
 
+dnl *** libfreenect2 ***
+translit(dnm, m, l) AM_CONDITIONAL(USE_FREENECT2, true)
+AG_GST_CHECK_FEATURE(FREENECT2, [freenect2 library], freenect2, [
+  PKG_CHECK_MODULES(FREENECT2, freenect2, HAVE_FREENECT2="yes", [ HAVE_FREENECT2="no" ] )
+  AC_SUBST(FREENECT2_CFLAGS)
+  AC_SUBST(FREENECT2_LIBS)
+])
+
 dnl *** Opus ***
 translit(dnm, m, l) AM_CONDITIONAL(USE_OPUS, true)
 AG_GST_CHECK_FEATURE(OPUS, [opus], opus, [
@@ -3008,6 +3016,7 @@ AM_CONDITIONAL(USE_FAAD, false)
 AM_CONDITIONAL(USE_FBDEV, false)
 AM_CONDITIONAL(USE_FLITE, false)
 AM_CONDITIONAL(USE_FLUIDSYNTH, false)
+AM_CONDITIONAL(USE_FREENECT2, false)
 AM_CONDITIONAL(USE_GL, false)
 AM_CONDITIONAL(USE_GSM, false)
 AM_CONDITIONAL(USE_GTK3, false)
@@ -3341,6 +3350,7 @@ ext/openexr/Makefile
 ext/openh264/Makefile
 ext/openjpeg/Makefile
 ext/openni2/Makefile
+ext/freenect2/Makefile
 ext/opus/Makefile
 ext/rsvg/Makefile
 ext/resindvd/Makefile

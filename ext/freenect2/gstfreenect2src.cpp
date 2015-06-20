@@ -41,6 +41,8 @@
 #endif
 
 #include "gstfreenect2src.h"
+#include <string>
+#include <libfreenect2/libfreenect2.hpp>
 
 GST_DEBUG_CATEGORY_STATIC (freenect2src_debug);
 #define GST_CAT_DEFAULT freenect2src_debug
@@ -175,13 +177,13 @@ gst_freenect2_src_init (GstFreenect2Src * freenect2src)
 {
   gst_base_src_set_live (GST_BASE_SRC (freenect2src), TRUE);
   gst_base_src_set_format (GST_BASE_SRC (freenect2src), GST_FORMAT_TIME);
-
+/*
   freenect2src->device = new openni::Device ();
   freenect2src->depth = new openni::VideoStream ();
   freenect2src->color = new openni::VideoStream ();
   freenect2src->depthFrame = new openni::VideoFrameRef ();
   freenect2src->colorFrame = new openni::VideoFrameRef ();
-
+*/
   freenect2src->oni_start_ts = GST_CLOCK_TIME_NONE;
 }
 
@@ -210,7 +212,7 @@ gst_freenect2_src_finalize (GObject * gobject)
     gst_caps_unref (freenect2src->gst_caps);
     freenect2src->gst_caps = NULL;
   }
-
+/*
   if (freenect2src->device) {
     delete freenect2src->device;
     freenect2src->device = NULL;
@@ -235,7 +237,7 @@ gst_freenect2_src_finalize (GObject * gobject)
     delete freenect2src->colorFrame;
     freenect2src->colorFrame = NULL;
   }
-
+*/
   G_OBJECT_CLASS (parent_class)->finalize (gobject);
 }
 
@@ -300,6 +302,7 @@ gst_freenect2_src_get_property (GObject * object, guint prop_id,
 static gboolean
 gst_freenect2_src_start (GstBaseSrc * bsrc)
 {
+  /*
   GstFreenect2Src *src = GST_FREENECT2_SRC (bsrc);
   openni::Status rc = openni::STATUS_OK;
 
@@ -320,15 +323,15 @@ gst_freenect2_src_start (GstBaseSrc * bsrc)
       return FALSE;
     }
   }
-
+  */
   return TRUE;
 }
 
 static gboolean
 gst_freenect2_src_stop (GstBaseSrc * bsrc)
 {
-  GstFreenect2Src *src = GST_FREENECT2_SRC (bsrc);
-
+  //GstFreenect2Src *src = GST_FREENECT2_SRC (bsrc);
+/*
   if (src->depthFrame)
     src->depthFrame->release ();
 
@@ -346,7 +349,7 @@ gst_freenect2_src_stop (GstBaseSrc * bsrc)
   }
 
   src->device->close ();
-
+*/
   return TRUE;
 }
 
@@ -365,7 +368,7 @@ gst_freenect2_src_get_caps (GstBaseSrc * src, GstCaps * filter)
     goto out;
 
   // If we are here, we need to compose the caps and return them.
-
+/*
   if (freenect2src->depth->isValid () && freenect2src->color->isValid () &&
       freenect2src->sourcetype == SOURCETYPE_BOTH
       && freenect2src->colorpixfmt == openni::PIXEL_FORMAT_RGB888) {
@@ -379,6 +382,9 @@ gst_freenect2_src_get_caps (GstBaseSrc * src, GstCaps * filter)
   } else {
     goto out;
   }
+*/
+
+  format = GST_VIDEO_FORMAT_RGBA;
 
   gst_video_info_init (&info);
   gst_video_info_set_format (&info, format, freenect2src->width, freenect2src->height);
@@ -525,6 +531,7 @@ gst_freenect2src_plugin_init (GstPlugin * plugin)
 static gboolean
 freenect2_initialise_library (void)
 {
+  /*
   openni::Status rc = openni::STATUS_OK;
   rc = openni::OpenNI::initialize ();
   if (rc != openni::STATUS_OK) {
@@ -534,11 +541,14 @@ freenect2_initialise_library (void)
     return GST_FLOW_ERROR;
   }
   return (rc == openni::STATUS_OK);
+  */
+  return TRUE;
 }
 
 static gboolean
 freenect2_initialise_devices (GstFreenect2Src * src)
 {
+  /*
   openni::Status rc = openni::STATUS_OK;
   const char *deviceURI = openni::ANY_DEVICE;
 
@@ -553,7 +563,7 @@ freenect2_initialise_devices (GstFreenect2Src * src)
     return FALSE;
   }
 
-  /** depth sensor **/
+  // depth sensor
   rc = src->depth->create (*src->device, openni::SENSOR_DEPTH);
   if (rc == openni::STATUS_OK) {
     rc = src->depth->start ();
@@ -566,7 +576,7 @@ freenect2_initialise_devices (GstFreenect2Src * src)
         openni::OpenNI::getExtendedError ());
   }
 
-  /** color sensor **/
+  // color sensor
   rc = src->color->create (*src->device, openni::SENSOR_COLOR);
   if (rc == openni::STATUS_OK) {
     rc = src->color->start ();
@@ -586,7 +596,7 @@ freenect2_initialise_devices (GstFreenect2Src * src)
     return FALSE;
   }
 
-  /** Get resolution and make sure is valid **/
+  // Get resolution and make sure is valid
   if (src->depth->isValid () && src->color->isValid ()) {
     src->depthVideoMode = src->depth->getVideoMode ();
     src->colorVideoMode = src->color->getVideoMode ();
@@ -628,20 +638,21 @@ freenect2_initialise_devices (GstFreenect2Src * src)
     GST_ERROR_OBJECT (src, "Expected at least one of the streams to be valid.");
     return FALSE;
   }
-
+  */
   return TRUE;
 }
 
 static GstFlowReturn
 freenect2_read_gstbuffer (GstFreenect2Src * src, GstBuffer * buf)
 {
+  /*
   openni::Status rc = openni::STATUS_OK;
   openni::VideoStream * pStream = src->depth;
   int changedStreamDummy;
   GstVideoFrame vframe;
   uint64_t oni_ts;
 
-  /* Block until we get some data */
+  // Block until we get some data
   rc = openni::OpenNI::waitForAnyStream (&pStream, 1, &changedStreamDummy,
       SAMPLE_READ_WAIT_TIMEOUT);
   if (rc != openni::STATUS_OK) {
@@ -665,12 +676,12 @@ freenect2_read_gstbuffer (GstFreenect2Src * src, GstBuffer * buf)
       return GST_FLOW_ERROR;
     }
 
-    /* Copy colour information */
+    // Copy colour information
     gst_video_frame_map (&vframe, &src->info, buf, GST_MAP_WRITE);
 
     guint8 *pData = (guint8 *) GST_VIDEO_FRAME_PLANE_DATA (&vframe, 0);
     guint8 *pColor = (guint8 *) src->colorFrame->getData ();
-    /* Add depth as 8bit alpha channel, depth is 16bit samples. */
+    // Add depth as 8bit alpha channel, depth is 16bit samples.
     guint16 *pDepth = (guint16 *) src->depthFrame->getData ();
 
     for (int i = 0; i < src->colorFrame->getHeight (); ++i) {
@@ -699,7 +710,7 @@ freenect2_read_gstbuffer (GstFreenect2Src * src, GstBuffer * buf)
       return GST_FLOW_ERROR;
     }
 
-    /* Copy depth information */
+    // Copy depth information
     gst_video_frame_map (&vframe, &src->info, buf, GST_MAP_WRITE);
 
     guint16 *pData = (guint16 *) GST_VIDEO_FRAME_PLANE_DATA (&vframe, 0);
@@ -756,6 +767,6 @@ freenect2_read_gstbuffer (GstFreenect2Src * src, GstBuffer * buf)
 
   GST_LOG_OBJECT (src, "Calculated PTS as %" GST_TIME_FORMAT,
       GST_TIME_ARGS (GST_BUFFER_PTS (buf)));
-
+*/
   return GST_FLOW_OK;
 }

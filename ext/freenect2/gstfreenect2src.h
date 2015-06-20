@@ -1,7 +1,7 @@
 /*
  * GStreamer
  * Copyright (C) 2015 Lubosz Sarnecki <lubosz@gmail.com>
- 
+
  * This library is free software; you can
  * redistribute it and/or modify it under the terms of the GNU Library
  * General Public License as published by the Free Software Foundation;
@@ -20,7 +20,8 @@
 
 #include <gst/gst.h>
 #include <stdio.h>
-#include <OpenNI.h>
+//#include <OpenNI.h>
+
 
 #include <gst/base/gstbasesrc.h>
 #include <gst/base/gstpushsrc.h>
@@ -61,12 +62,14 @@ struct _GstFreenect2Src
   GstClockTime oni_start_ts;
 
   /* OpenNI2 variables */
+  /*
   openni::Device *device;
   openni::VideoStream *depth, *color;
   openni::VideoMode depthVideoMode, colorVideoMode;
   openni::PixelFormat depthpixfmt, colorpixfmt;
+  */
   int width, height, fps;
-  openni::VideoFrameRef *depthFrame, *colorFrame;
+  //openni::VideoFrameRef *depthFrame, *colorFrame;
 };
 
 struct _GstFreenect2SrcClass
