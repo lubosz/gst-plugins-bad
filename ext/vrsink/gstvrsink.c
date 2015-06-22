@@ -165,6 +165,10 @@ static gboolean gst_vr_sink_propose_allocation (GstBaseSink * bsink,
 
 static gboolean update_output_format (GstVRSink * vr_sink);
 
+gboolean
+gst_vr_sink_shader_compile (GstGLShader * shader,
+    GLint * pos_loc, GLint * tex_loc);
+
 static GstStaticPadTemplate gst_vr_sink_template =
 GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
@@ -1299,6 +1303,49 @@ _unbind_buffer (GstVRSink * vr_sink)
   gl->DisableVertexAttribArray (vr_sink->attr_texture);
 }
 
+/* *INDENT-OFF* */
+static const gchar *simple_vertex_shader_str_gles2 =
+      "attribute vec4 a_position;\n"
+      "attribute vec2 a_texcoord;\n"
+      "varying vec2 v_texcoord;\n"
+      "void main()\n"
+      "{\n"
+      "   gl_Position = a_position;\n"
+      "   v_texcoord = a_texcoord;\n"
+      "}\n";
+
+static const gchar *simple_fragment_shader_str_gles2 =
+      "#ifdef GL_ES\n"
+      "precision mediump float;\n"
+      "#endif\n"
+      "varying vec2 v_texcoord;\n"
+      "uniform sampler2D tex;\n"
+      "void main()\n"
+      "{\n"
+      "  gl_FragColor = texture2D(tex, v_texcoord);\n"
+      "}";
+/* *INDENT-ON* */
+
+gboolean
+gst_vr_sink_shader_compile (GstGLShader * shader,
+    GLint * pos_loc, GLint * tex_loc)
+{
+  const gchar *attrib_names[2] = { "a_position", "a_texcoord" };
+  GLint attrib_locs[2] = { 0 };
+  gboolean ret = TRUE;
+
+  ret = gst_gl_shader_compile_all_with_attribs_and_check (shader,
+      simple_vertex_shader_str_gles2, simple_fragment_shader_str_gles2, 2,
+      attrib_names, attrib_locs);
+
+  if (ret) {
+    *pos_loc = attrib_locs[0];
+    *tex_loc = attrib_locs[1];
+  }
+
+  return ret;
+}
+
 /* Called in the gl thread */
 static void
 gst_vr_sink_thread_init_redisplay (GstVRSink * vr_sink)
@@ -1307,7 +1354,7 @@ gst_vr_sink_thread_init_redisplay (GstVRSink * vr_sink)
 
   vr_sink->redisplay_shader = gst_gl_shader_new (vr_sink->context);
 
-  if (!gst_gl_shader_compile_with_default_vf_and_check
+  if (!gst_vr_sink_shader_compile
       (vr_sink->redisplay_shader, &vr_sink->attr_position,
           &vr_sink->attr_texture))
     gst_vr_sink_cleanup_glthread (vr_sink);
