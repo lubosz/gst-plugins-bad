@@ -84,9 +84,6 @@
 #include "config.h"
 #endif
 
-#include <gst/video/videooverlay.h>
-#include <gst/video/navigation.h>
-
 #include "gstvrsink.h"
 
 
@@ -459,8 +456,6 @@ gst_vr_sink_key_event_cb (GstGLWindow * window, char *event_name, char
 {
   GST_DEBUG_OBJECT (vr_sink, "glimagesink event %s key %s pressed", event_name,
       key_string);
-  gst_navigation_send_key_event (GST_NAVIGATION (vr_sink),
-      event_name, key_string);
 }
 
 static void
@@ -469,8 +464,6 @@ gst_vr_sink_mouse_event_cb (GstGLWindow * window, char *event_name,
 {
   GST_DEBUG_OBJECT (vr_sink, "glimagesink event %s at %g, %g", event_name, posx,
       posy);
-  gst_navigation_send_mouse_event (GST_NAVIGATION (vr_sink),
-      event_name, button, posx, posy);
 }
 
 static gboolean
@@ -517,9 +510,6 @@ _ensure_gl_setup (GstVRSink * vr_sink)
       window = gst_gl_context_get_window (vr_sink->context);
 
       GST_DEBUG_OBJECT (vr_sink, "got window %" GST_PTR_FORMAT, window);
-
-      if (!vr_sink->window_id && !vr_sink->new_window_id)
-        gst_video_overlay_prepare_window_handle (GST_VIDEO_OVERLAY (vr_sink));
 
       GST_DEBUG_OBJECT (vr_sink,
           "window_id : %" G_GUINTPTR_FORMAT " , new_window_id : %"
