@@ -1,7 +1,8 @@
 plugin_LTLIBRARIES = libgstvrsink.la
 
 libgstvrsink_la_SOURCES = \
-	gstvrsink.c
+	gstvrsink.c \
+	gstvr.c
 
 noinst_HEADERS = \
 	gstvrsink.h
