@@ -1305,8 +1305,9 @@ _unbind_buffer (GstVRSink * vr_sink)
 
 /* *INDENT-OFF* */
 static const gchar *simple_vertex_shader_str_gles2 =
-      "attribute vec4 a_position;\n"
-      "attribute vec2 a_texcoord;\n"
+      "#version 330\n"
+      "in vec4 a_position;\n"
+      "in vec2 a_texcoord;\n"
       "varying vec2 v_texcoord;\n"
       "void main()\n"
       "{\n"
@@ -1315,10 +1316,8 @@ static const gchar *simple_vertex_shader_str_gles2 =
       "}\n";
 
 static const gchar *simple_fragment_shader_str_gles2 =
-      "#ifdef GL_ES\n"
-      "precision mediump float;\n"
-      "#endif\n"
-      "varying vec2 v_texcoord;\n"
+      "#version 330\n"
+      "in vec2 v_texcoord;\n"
       "uniform sampler2D tex;\n"
       "void main()\n"
       "{\n"
