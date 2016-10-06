@@ -1656,6 +1656,7 @@ _GRAY_to_RGB (GstGLColorConvert * convert)
           pixel_order[0], pixel_order[0], pixel_order[3]);
       break;
     case GST_VIDEO_FORMAT_GRAY16_LE:
+    case GST_VIDEO_FORMAT_GRAY32F:
     {
       char val2 = texture_rg ? 'g' : 'a';
       info->templ = &templ_COMPOSE;

@@ -211,6 +211,7 @@ gst_gl_texture_type_from_format (GstGLContext * context,
       return GST_VIDEO_GL_TEXTURE_TYPE_RGB16;
     case GST_VIDEO_FORMAT_GRAY16_BE:
     case GST_VIDEO_FORMAT_GRAY16_LE:
+    case GST_VIDEO_FORMAT_GRAY32F:
     case GST_VIDEO_FORMAT_YUY2:
     case GST_VIDEO_FORMAT_UYVY:
       n_plane_components = 2;
